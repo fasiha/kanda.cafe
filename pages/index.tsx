@@ -54,10 +54,35 @@ const Annotate = () => {
   if (!nlp) {
     return <>{line}</>;
   }
+  console.log(nlp);
   return (
-    <p lang={"ja"}>
-      <Furigana vv={nlp.furigana} />
-    </p>
+    <div>
+      <p lang={"ja"}>
+        <Furigana vv={nlp.furigana} />
+      </p>
+      <ol>
+        {nlp.hits.map(
+          (scoreHits, i) =>
+            scoreHits.results.length > 0 && (
+              <li key={i} value={i}>
+                <ol>
+                  {scoreHits.results.map((res) => (
+                    <li>
+                      <ol>
+                        {res.results.map((r) => (
+                          <li>
+                            <sup>{r.search}</sup> {r.summary}
+                          </li>
+                        ))}
+                      </ol>
+                    </li>
+                  ))}
+                </ol>
+              </li>
+            )
+        )}
+      </ol>
+    </div>
   );
 };
 
