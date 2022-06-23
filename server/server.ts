@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
 
 app.get('/sentence/:sentence', async (req, res) => {
   const body = {sentence: req.params.sentence};
-  const reply = await fetch(CURTIZ_URL + '/api/v1/sentence', {
+  const reply = await fetch(CURTIZ_URL + '/api/v1/sentence?includeWord=1', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(body)

@@ -71,7 +71,7 @@ const Annotate = () => {
                       <ol>
                         {res.results.map((r) => (
                           <li>
-                            <sup>{r.search}</sup> {r.summary}
+                            <sup>{r.search}</sup> {r.summary} (#{r.word?.id})
                           </li>
                         ))}
                       </ol>
