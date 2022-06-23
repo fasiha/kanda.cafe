@@ -16,11 +16,12 @@ app.get('/', (req, res) => {
 
 app.get('/sentence/:sentence', async (req, res) => {
   const body = {sentence: req.params.sentence};
-  const reply = await fetch(CURTIZ_URL + '/api/v1/sentence?includeWord=1', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body)
-  })
+  const reply = await fetch(
+      CURTIZ_URL + '/api/v1/sentence?includeWord=1&includeClozes=1', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      })
   const data = await reply.json();
   res.format({
     'text/plain': () => {res.send('hi curl\n' + JSON.stringify(data))},
