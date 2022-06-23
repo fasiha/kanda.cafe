@@ -1,14 +1,17 @@
+import cors from 'cors';
 import express from 'express';
 import fetch from 'isomorphic-fetch';
+
 const CURTIZ_URL = 'http://127.0.0.1:8133';
+const port = process.env['PORT'] || 3010;
 
 const app = express();
-const port = process.env['PORT'] || 3010;
+app.use(cors());
 
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send('Hello World!');
+  res.send('GET /sentences/私の分');
 });
 
 app.get('/sentence/:sentence', async (req, res) => {
@@ -18,11 +21,13 @@ app.get('/sentence/:sentence', async (req, res) => {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(body)
   })
-  const rawReply = await reply.text();
+  const data = await reply.json();
   res.format({
+    'text/plain': () => {res.send('hi curl\n' + JSON.stringify(data))},
     'text/html': () =>
-        res.send(`Input: ${req.params.sentence}. Output:<br>${(rawReply)}`),
-    'application/json': () => res.json(JSON.parse(rawReply))
+        res.send(`Input: ${req.params.sentence}. Output:<br><pre>${
+            JSON.stringify(data, null, 1)}</pre>`),
+    'application/json': () => res.json(data)
   })
 })
 
