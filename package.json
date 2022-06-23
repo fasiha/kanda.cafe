@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "server-build": "cd server && tsc --esModuleInterop --incremental --tsBuildInfoFile tsbuild server.ts",
+    "server-start": "node server/server.js"
   },
   "dependencies": {
     "next": "12.1.6",
@@ -14,11 +16,15 @@
     "react-dom": "18.2.0"
   },
   "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/isomorphic-fetch": "^0.0.36",
     "@types/node": "18.0.0",
     "@types/react": "18.0.14",
     "@types/react-dom": "18.0.5",
     "eslint": "8.18.0",
     "eslint-config-next": "12.1.6",
+    "express": "^4.18.1",
+    "isomorphic-fetch": "^3.0.0",
     "typescript": "4.7.4"
   }
 }
