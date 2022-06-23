@@ -49,7 +49,9 @@ const Annotate = () => {
         setNlp(data);
       })();
     }
-  }, [nlp]);
+  }, []);
+  // Yes the above will run twice in dev mode, see
+  // https://reactjs.org/blog/2022/03/29/react-v18.html#new-strict-mode-behaviors
 
   if (!nlp) {
     return <>{line}</>;
