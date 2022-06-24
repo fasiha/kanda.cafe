@@ -119,19 +119,22 @@ const Annotate = () => {
                 <ol>
                   {scoreHits.results.map((res) => (
                     <li>
-                      <ol>
-                        {res.results.map((r) => (
-                          <li>
-                            <sup>{r.search}</sup> {renderKanji(r.word)} 「
-                            {renderKana(r.word)}」 (#{r.word?.id})
-                            <ol>
-                              {renderSenses(r.word, nlp.tags).map((s) => (
-                                <li>{s}</li>
-                              ))}
-                            </ol>
-                          </li>
-                        ))}
-                      </ol>
+                      <>
+                        {res.run}
+                        <ol>
+                          {res.results.map((r) => (
+                            <li>
+                              <sup>{r.search}</sup> {renderKanji(r.word)} 「
+                              {renderKana(r.word)}」 (#{r.word?.id})
+                              <ol>
+                                {renderSenses(r.word, nlp.tags).map((s) => (
+                                  <li>{s}</li>
+                                ))}
+                              </ol>
+                            </li>
+                          ))}
+                        </ol>
+                      </>
                     </li>
                   ))}
                 </ol>
