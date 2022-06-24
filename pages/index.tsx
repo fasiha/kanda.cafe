@@ -7,6 +7,9 @@ import styles from "../styles/Home.module.css";
 import {
   v1ResSentenceAnalyzed,
   Furigana,
+  Xref,
+  Word,
+  Sense,
 } from "curtiz-japanese-nlp/interfaces";
 
 interface FuriganaProps {
@@ -31,11 +34,57 @@ const Furigana = ({ vv }: FuriganaProps) => {
   );
 };
 
+function renderKanji(w: Word | undefined) {
+  if (!w) {
+    throw new Error("undefined input");
+  }
+  return w.kanji.map((k) => k.text).join("・");
+}
+function renderKana(w: Word | undefined) {
+  if (!w) {
+    throw new Error("undefined input");
+  }
+  return w.kana.map((k) => k.text).join("・");
+}
+function printXrefs(v: Xref[]) {
+  return v.map((x) => x.join(",")).join(";");
+}
+function renderSenses(
+  w: Word | undefined,
+  tags: Record<string, string> | undefined
+): string[] {
+  if (!w || !tags) {
+    throw new Error("undefined input");
+  }
+  type Tag = string;
+  type TagKey = {
+    [K in keyof Sense]: Sense[K] extends Tag[] ? K : never;
+  }[keyof Sense];
+  const tagFields: Partial<Record<TagKey, string>> = {
+    dialect: "🗣",
+    field: "🀄️",
+    misc: "✋",
+  };
+  return w.sense.map(
+    (sense, n) =>
+      sense.gloss.map((gloss) => gloss.text).join("/") +
+      (sense.related.length ? ` (👉 ${printXrefs(sense.related)})` : "") +
+      (sense.antonym.length ? ` (👈 ${printXrefs(sense.antonym)})` : "") +
+      Object.entries(tagFields)
+        .map(([k, v]) =>
+          sense[k as TagKey].length
+            ? ` (${v} ${sense[k as TagKey].map((k) => tags[k]).join("; ")})`
+            : ""
+        )
+        .join("")
+  );
+}
+
 const Annotate = () => {
   // This component will be called for lines that haven't been annotated yet.
   // This should not work in static-generated output, ideally it won't exist.
   const line =
-    "ある日の朝早く、ジリリリんとおしりたんてい事務所の電話が鳴りました。";
+    "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。";
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
 
@@ -73,7 +122,13 @@ const Annotate = () => {
                       <ol>
                         {res.results.map((r) => (
                           <li>
-                            <sup>{r.search}</sup> {r.summary} (#{r.word?.id})
+                            <sup>{r.search}</sup> {renderKanji(r.word)} 「
+                            {renderKana(r.word)}」 (#{r.word?.id})
+                            <ol>
+                              {renderSenses(r.word, nlp.tags).map((s) => (
+                                <li>{s}</li>
+                              ))}
+                            </ol>
                           </li>
                         ))}
                       </ol>
