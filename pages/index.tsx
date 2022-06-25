@@ -1,6 +1,6 @@
-import type { NextPage } from "next";
-import Head from "next/head";
-import Image from "next/image";
+import type { InferGetStaticPropsType, NextPage } from "next";
+import { readFile, readdir } from "fs/promises";
+import path from "path";
 import { createElement, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 
@@ -96,7 +96,17 @@ function circleNumber(n: number): string {
   return circledNumbers[n] || "" + n;
 }
 
-const Annotate = () => {
+interface Hit {
+  startIdx: number;
+  endIdx: number;
+  word: Word;
+  sense: number;
+}
+
+interface AnnotateProps {
+  sentences: Record<string, { data: { hits: Hit[] } }>;
+}
+const Annotate = ({ sentences }: AnnotateProps) => {
   const HELPER_URL = "http://localhost:3010";
 
   // This component will be called for lines that haven't been annotated yet.
@@ -105,14 +115,7 @@ const Annotate = () => {
     "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。";
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
-  const [hits, setHits] = useState<
-    {
-      startIdx: number;
-      endIdx: number;
-      word: Word;
-      sense: number;
-    }[]
-  >([]);
+  const [hits, setHits] = useState<Hit[]>(sentences[line]?.data?.hits || []);
   const idxsCovered = new Set(hits.flatMap((o) => range(o.startIdx, o.endIdx)));
 
   useEffect(() => {
@@ -125,6 +128,7 @@ const Annotate = () => {
         });
         const data = await req.json();
         setNlp(data);
+        console.log("nlp", nlp);
       })();
     }
   }, []);
@@ -149,7 +153,6 @@ const Annotate = () => {
   if (!nlp) {
     return <>{line}</>;
   }
-  console.log(nlp);
   if (!nlp.tags) {
     throw new Error("tags expected");
   }
@@ -244,13 +247,29 @@ const Annotate = () => {
   );
 };
 
-const Home: NextPage = () => {
+export default function HomePage({
+  sentences,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
-      <Annotate />
+      <Annotate sentences={sentences} />
     </div>
   );
-};
+}
 
-export default Home;
+export const getStaticProps = async () => {
+  // might only print if you restart next dev server
+  const parentDir = path.join(process.cwd(), "data");
+  const jsons = (await readdir(parentDir)).filter((f) =>
+    f.toLowerCase().endsWith(".json")
+  );
+  console.log("ls", jsons);
+  const sentences = await Promise.all(
+    jsons.map((j) =>
+      readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x))
+    )
+  );
+  const obj = Object.fromEntries(sentences.map((s) => [s.sentence, s]));
+  return { props: { sentences: obj } };
+};
