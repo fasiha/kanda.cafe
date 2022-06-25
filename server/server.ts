@@ -1,5 +1,7 @@
 import cors from 'cors';
+import {createHash} from 'crypto';
 import express from 'express';
+import {writeFile} from 'fs/promises';
 import fetch from 'isomorphic-fetch';
 
 const CURTIZ_URL = 'http://127.0.0.1:8133';
@@ -30,7 +32,19 @@ app.get('/sentence/:sentence', async (req, res) => {
             JSON.stringify(data, null, 1)}</pre>`),
     'application/json': () => res.json(data)
   })
-})
+});
+
+app.post('/save', (req, res) => {
+  const {sentence, data} = req.body || {};
+  if (sentence && data && typeof sentence === 'string' &&
+      typeof data === 'object' && Object.keys(data || {}).length > 0) {
+    const md5 = createHash('md5').update(sentence).digest('hex');
+    writeFile(`../data/${md5}.json`, JSON.stringify(req.body));
+    res.status(200).send('ok');
+  } else {
+    res.status(400).send('invalid json')
+  }
+});
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

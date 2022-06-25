@@ -97,6 +97,8 @@ function circleNumber(n: number): string {
 }
 
 const Annotate = () => {
+  const HELPER_URL = "http://localhost:3010";
+
   // This component will be called for lines that haven't been annotated yet.
   // This should not work in static-generated output, ideally it won't exist.
   const line =
@@ -117,8 +119,8 @@ const Annotate = () => {
     // Yes this will run twice in dev mode, see
     // https://reactjs.org/blog/2022/03/29/react-v18.html#new-strict-mode-behaviors
     if (!nlp) {
-      (async function main() {
-        const req = await fetch(`http://localhost:3010/sentence/${line}`, {
+      (async function parse() {
+        const req = await fetch(`${HELPER_URL}/sentence/${line}`, {
           headers: { Accept: "application/json" },
         });
         const data = await req.json();
@@ -126,6 +128,23 @@ const Annotate = () => {
       })();
     }
   }, []);
+
+  useEffect(() => {
+    if (hits.length > 0) {
+      (async function save() {
+        const res = await fetch(`${HELPER_URL}/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sentence: line, data: { hits } }),
+        });
+        if (!res.ok) {
+          console.error(`${res.status} ${res.statusText}`);
+        } else {
+          console.log("saved");
+        }
+      })();
+    }
+  }, [hits]);
 
   if (!nlp) {
     return <>{line}</>;
