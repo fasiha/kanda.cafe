@@ -120,7 +120,7 @@ const Annotate = ({ sentences }: AnnotateProps) => {
         });
         const data = await req.json();
         setNlp(data);
-        console.log("nlp", nlp);
+        console.log("nlp", data);
       })();
     }
   }, []);
@@ -190,6 +190,20 @@ const Annotate = ({ sentences }: AnnotateProps) => {
               </button>
             </li>
           ))}
+        </ol>
+      </details>
+      <details open>
+        <summary>All particles found</summary>
+        <ol>
+          {Object.values(clozes.particles).map(({ cloze, morphemes }) => {
+            return (
+              <li>
+                <sub>{cloze.left}</sub>
+                {cloze.cloze}
+                <sub>{cloze.right}</sub>: {morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}
+              </li>
+            );
+          })}
         </ol>
       </details>
       <details open>
