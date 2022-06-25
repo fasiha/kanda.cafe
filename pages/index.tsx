@@ -4,14 +4,7 @@ import path from "path";
 import { createElement, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 
-import {
-  v1ResSentenceAnalyzed,
-  Furigana,
-  Xref,
-  Word,
-  Sense,
-  ConjugatedPhrase,
-} from "curtiz-japanese-nlp/interfaces";
+import { v1ResSentenceAnalyzed, Furigana, Xref, Word, Sense, ConjugatedPhrase } from "curtiz-japanese-nlp/interfaces";
 
 interface FuriganaProps {
   vv: Furigana[][];
@@ -61,9 +54,7 @@ function renderSenses(w: Word, tags: Record<string, string>): string[] {
       (sense.antonym.length ? ` (👈 ${printXrefs(sense.antonym)})` : "") +
       Object.entries(tagFields)
         .map(([k, v]) =>
-          sense[k as TagKey].length
-            ? ` (${v} ${sense[k as TagKey].map((k) => tags[k]).join("; ")})`
-            : ""
+          sense[k as TagKey].length ? ` (${v} ${sense[k as TagKey].map((k) => tags[k]).join("; ")})` : ""
         )
         .join("")
   );
@@ -92,8 +83,7 @@ function concatIfNew<X, Y>(v: X[], x: X, key: (x: X) => Y) {
   return v.concat(x);
 }
 function circleNumber(n: number): string {
-  const circledNumbers =
-    "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿";
+  const circledNumbers = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿";
   return circledNumbers[n] || "" + n;
 }
 
@@ -104,32 +94,21 @@ interface Hit {
   sense: number;
 }
 
-const conjugatedPhraseKey = (x: ConjugatedPhrase): string =>
-  x.morphemes.map((o) => o.literal).join("");
+const conjugatedPhraseKey = (x: ConjugatedPhrase): string => x.morphemes.map((o) => o.literal).join("");
 interface AnnotateProps {
-  sentences: Record<
-    string,
-    { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[] } }
-  >;
+  sentences: Record<string, { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[] } }>;
 }
 const Annotate = ({ sentences }: AnnotateProps) => {
   const HELPER_URL = "http://localhost:3010";
 
   // This component will be called for lines that haven't been annotated yet.
   // This should not work in static-generated output, ideally it won't exist.
-  const line =
-    "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。";
+  const line = "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。";
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
-  const [dictHits, setDictHits] = useState<Hit[]>(
-    sentences[line]?.data?.dictHits || []
-  );
-  const [conjHits, setConjHits] = useState<ConjugatedPhrase[]>(
-    sentences[line]?.data?.conjHits || []
-  );
-  const idxsCovered = new Set(
-    dictHits.flatMap((o) => range(o.startIdx, o.endIdx))
-  );
+  const [dictHits, setDictHits] = useState<Hit[]>(sentences[line]?.data?.dictHits || []);
+  const [conjHits, setConjHits] = useState<ConjugatedPhrase[]>(sentences[line]?.data?.conjHits || []);
+  const idxsCovered = new Set(dictHits.flatMap((o) => range(o.startIdx, o.endIdx)));
 
   useEffect(() => {
     // Yes this will run twice in dev mode, see
@@ -183,8 +162,7 @@ const Annotate = ({ sentences }: AnnotateProps) => {
         <ul>
           {dictHits.map((h) => (
             <li>
-              {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「
-              {renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
+              {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
               {renderSenses(h.word, tags)[h.sense]}
             </li>
           ))}
@@ -197,34 +175,15 @@ const Annotate = ({ sentences }: AnnotateProps) => {
             <li>
               {phrase.cloze.cloze}{" "}
               <button
-                disabled={
-                  !!conjHits.find(
-                    (p) =>
-                      conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase)
-                  )
-                }
-                onClick={() =>
-                  setConjHits(
-                    concatIfNew(conjHits, phrase, conjugatedPhraseKey)
-                  )
-                }
+                disabled={!!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
+                onClick={() => setConjHits(concatIfNew(conjHits, phrase, conjugatedPhraseKey))}
               >
                 Pick
               </button>{" "}
               <button
-                disabled={
-                  !conjHits.find(
-                    (p) =>
-                      conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase)
-                  )
-                }
+                disabled={!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
                 onClick={() =>
-                  setConjHits(
-                    conjHits.filter(
-                      (p) =>
-                        conjugatedPhraseKey(p) !== conjugatedPhraseKey(phrase)
-                    )
-                  )
+                  setConjHits(conjHits.filter((p) => conjugatedPhraseKey(p) !== conjugatedPhraseKey(phrase)))
                 }
               >
                 Delete
@@ -243,16 +202,8 @@ const Annotate = ({ sentences }: AnnotateProps) => {
                   <ol>
                     {scoreHits.results.map((res, innerIdx) => (
                       <li>
-                        <details
-                          open={range(scoreHits.startIdx, res.endIdx).some(
-                            (x) => !idxsCovered.has(x)
-                          )}
-                        >
-                          <summary>
-                            {typeof res.run === "string"
-                              ? res.run
-                              : res.run.cloze}
-                          </summary>
+                        <details open={range(scoreHits.startIdx, res.endIdx).some((x) => !idxsCovered.has(x))}>
+                          <summary>{typeof res.run === "string" ? res.run : res.run.cloze}</summary>
                           <ol>
                             {res.results.map((hit, wordIdx) => {
                               if (!hit.word) {
@@ -261,39 +212,34 @@ const Annotate = ({ sentences }: AnnotateProps) => {
                               const word = hit.word;
                               return (
                                 <li>
-                                  <sup>{hit.search}</sup>{" "}
-                                  {renderKanji(hit.word)} 「
-                                  {renderKana(hit.word)}」 (#{hit.word.id})
+                                  <sup>{hit.search}</sup> {renderKanji(hit.word)} 「{renderKana(hit.word)}」 (#
+                                  {hit.word.id})
                                   <ol>
-                                    {renderSenses(hit.word, tags).map(
-                                      (s, senseIdx) => (
-                                        <li>
-                                          <>
-                                            {s}{" "}
-                                            <button
-                                              onClick={() => {
-                                                setDictHits(
-                                                  concatIfNew(
-                                                    dictHits,
-                                                    {
-                                                      startIdx:
-                                                        scoreHits.startIdx,
-                                                      endIdx: res.endIdx,
-                                                      word: word,
-                                                      sense: senseIdx,
-                                                    },
-                                                    (x) =>
-                                                      `${x.startIdx}/${x.endIdx}/${x.word.id}`
-                                                  )
-                                                );
-                                              }}
-                                            >
-                                              Pick
-                                            </button>
-                                          </>
-                                        </li>
-                                      )
-                                    )}
+                                    {renderSenses(hit.word, tags).map((s, senseIdx) => (
+                                      <li>
+                                        <>
+                                          {s}{" "}
+                                          <button
+                                            onClick={() => {
+                                              setDictHits(
+                                                concatIfNew(
+                                                  dictHits,
+                                                  {
+                                                    startIdx: scoreHits.startIdx,
+                                                    endIdx: res.endIdx,
+                                                    word: word,
+                                                    sense: senseIdx,
+                                                  },
+                                                  (x) => `${x.startIdx}/${x.endIdx}/${x.word.id}`
+                                                )
+                                              );
+                                            }}
+                                          >
+                                            Pick
+                                          </button>
+                                        </>
+                                      </li>
+                                    ))}
                                   </ol>
                                 </li>
                               );
@@ -312,9 +258,7 @@ const Annotate = ({ sentences }: AnnotateProps) => {
   );
 };
 
-export default function HomePage({
-  sentences,
-}: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function HomePage({ sentences }: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
@@ -326,14 +270,10 @@ export default function HomePage({
 export const getStaticProps = async () => {
   // might only print if you restart next dev server
   const parentDir = path.join(process.cwd(), "data");
-  const jsons = (await readdir(parentDir)).filter((f) =>
-    f.toLowerCase().endsWith(".json")
-  );
+  const jsons = (await readdir(parentDir)).filter((f) => f.toLowerCase().endsWith(".json"));
   console.log("ls", jsons);
   const sentences = await Promise.all(
-    jsons.map((j) =>
-      readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x))
-    )
+    jsons.map((j) => readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x)))
   );
   const obj = Object.fromEntries(sentences.map((s) => [s.sentence, s]));
   return { props: { sentences: obj } };
