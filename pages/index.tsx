@@ -10,6 +10,7 @@ import {
   Xref,
   Word,
   Sense,
+  ConjugatedPhrase,
 } from "curtiz-japanese-nlp/interfaces";
 
 interface FuriganaProps {
@@ -103,8 +104,13 @@ interface Hit {
   sense: number;
 }
 
+const conjugatedPhraseKey = (x: ConjugatedPhrase): string =>
+  x.morphemes.map((o) => o.literal).join("");
 interface AnnotateProps {
-  sentences: Record<string, { data: { hits: Hit[] } }>;
+  sentences: Record<
+    string,
+    { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[] } }
+  >;
 }
 const Annotate = ({ sentences }: AnnotateProps) => {
   const HELPER_URL = "http://localhost:3010";
@@ -115,8 +121,15 @@ const Annotate = ({ sentences }: AnnotateProps) => {
     "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。";
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
-  const [hits, setHits] = useState<Hit[]>(sentences[line]?.data?.hits || []);
-  const idxsCovered = new Set(hits.flatMap((o) => range(o.startIdx, o.endIdx)));
+  const [dictHits, setDictHits] = useState<Hit[]>(
+    sentences[line]?.data?.dictHits || []
+  );
+  const [conjHits, setConjHits] = useState<ConjugatedPhrase[]>(
+    sentences[line]?.data?.conjHits || []
+  );
+  const idxsCovered = new Set(
+    dictHits.flatMap((o) => range(o.startIdx, o.endIdx))
+  );
 
   useEffect(() => {
     // Yes this will run twice in dev mode, see
@@ -134,12 +147,15 @@ const Annotate = ({ sentences }: AnnotateProps) => {
   }, []);
 
   useEffect(() => {
-    if (hits.length > 0) {
+    if (dictHits.length > 0 || conjHits.length > 0) {
       (async function save() {
         const res = await fetch(`${HELPER_URL}/save`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sentence: line, data: { hits } }),
+          body: JSON.stringify({
+            sentence: line,
+            data: { dictHits, conjHits },
+          }),
         });
         if (!res.ok) {
           console.error(`${res.status} ${res.statusText}`);
@@ -148,15 +164,15 @@ const Annotate = ({ sentences }: AnnotateProps) => {
         }
       })();
     }
-  }, [hits]);
+  }, [dictHits, conjHits]);
 
   if (!nlp) {
     return <>{line}</>;
   }
-  if (!nlp.tags) {
-    throw new Error("tags expected");
+  if (!nlp.tags || !nlp.clozes) {
+    throw new Error("tags/clozes expected");
   }
-  const { tags } = nlp;
+  const { tags, clozes } = nlp;
   return (
     <div>
       <p lang={"ja"}>
@@ -165,7 +181,7 @@ const Annotate = ({ sentences }: AnnotateProps) => {
       <details open>
         <summary>Selected dictionary entries</summary>
         <ul>
-          {hits.map((h) => (
+          {dictHits.map((h) => (
             <li>
               {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「
               {renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
@@ -173,6 +189,49 @@ const Annotate = ({ sentences }: AnnotateProps) => {
             </li>
           ))}
         </ul>
+      </details>
+      <details open>
+        <summary>All conjugated phrases found</summary>
+        <ol>
+          {Object.values(clozes.conjugatedPhrases).map((phrase) => (
+            <li>
+              {phrase.cloze.cloze}{" "}
+              <button
+                disabled={
+                  !!conjHits.find(
+                    (p) =>
+                      conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase)
+                  )
+                }
+                onClick={() =>
+                  setConjHits(
+                    concatIfNew(conjHits, phrase, conjugatedPhraseKey)
+                  )
+                }
+              >
+                Pick
+              </button>{" "}
+              <button
+                disabled={
+                  !conjHits.find(
+                    (p) =>
+                      conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase)
+                  )
+                }
+                onClick={() =>
+                  setConjHits(
+                    conjHits.filter(
+                      (p) =>
+                        conjugatedPhraseKey(p) !== conjugatedPhraseKey(phrase)
+                    )
+                  )
+                }
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ol>
       </details>
       <details open>
         <summary>All dictionary entries matched</summary>
@@ -213,9 +272,9 @@ const Annotate = ({ sentences }: AnnotateProps) => {
                                             {s}{" "}
                                             <button
                                               onClick={() => {
-                                                setHits(
+                                                setDictHits(
                                                   concatIfNew(
-                                                    hits,
+                                                    dictHits,
                                                     {
                                                       startIdx:
                                                         scoreHits.startIdx,
