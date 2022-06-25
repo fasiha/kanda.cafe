@@ -96,18 +96,17 @@ interface Hit {
 
 const conjugatedPhraseKey = (x: ConjugatedPhrase): string => x.morphemes.map((o) => o.literal).join("");
 interface AnnotateProps {
-  sentences: Record<string, { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[] } }>;
+  line: string;
+  sentencesDb: Record<string, { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[] } }>;
 }
-const Annotate = ({ sentences }: AnnotateProps) => {
-  const HELPER_URL = "http://localhost:3010";
-
+const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   // This component will be called for lines that haven't been annotated yet.
   // This should not work in static-generated output, ideally it won't exist.
-  const line = "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。";
+  const HELPER_URL = "http://localhost:3010";
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
-  const [dictHits, setDictHits] = useState<Hit[]>(sentences[line]?.data?.dictHits || []);
-  const [conjHits, setConjHits] = useState<ConjugatedPhrase[]>(sentences[line]?.data?.conjHits || []);
+  const [dictHits, setDictHits] = useState<Hit[]>(sentencesDb[line]?.data?.dictHits || []);
+  const [conjHits, setConjHits] = useState<ConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
   const idxsCovered = new Set(dictHits.flatMap((o) => range(o.startIdx, o.endIdx)));
 
   useEffect(() => {
@@ -146,7 +145,7 @@ const Annotate = ({ sentences }: AnnotateProps) => {
   }, [dictHits, conjHits]);
 
   if (!nlp) {
-    return <>{line}</>;
+    return <h2>{line}</h2>;
   }
   if (!nlp.tags || !nlp.clozes) {
     throw new Error("tags/clozes expected");
@@ -154,9 +153,9 @@ const Annotate = ({ sentences }: AnnotateProps) => {
   const { tags, clozes } = nlp;
   return (
     <div>
-      <p lang={"ja"}>
+      <h2 lang={"ja"}>
         <Furigana vv={nlp.furigana} />
-      </p>
+      </h2>
       <details open>
         <summary>Selected dictionary entries</summary>
         <ul>
@@ -273,10 +272,13 @@ const Annotate = ({ sentences }: AnnotateProps) => {
 };
 
 export default function HomePage({ sentences }: InferGetStaticPropsType<typeof getStaticProps>) {
+  const line = "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。";
+
   return (
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
-      <Annotate sentences={sentences} />
+      <Annotate sentencesDb={sentences} line={"早い"} />
+      <Annotate sentencesDb={sentences} line={line} />
     </div>
   );
 }
