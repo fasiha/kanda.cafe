@@ -162,87 +162,93 @@ const Annotate = ({ sentences }: AnnotateProps) => {
       <p lang={"ja"}>
         <Furigana vv={nlp.furigana} />
       </p>
-      <p>Hits</p>
-      <ul>
-        {hits.map((h) => (
-          <li>
-            {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「
-            {renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-            {renderSenses(h.word, tags)[h.sense]}
-          </li>
-        ))}
-      </ul>
-      <ol>
-        {nlp.hits.map(
-          (scoreHits, outerIdx) =>
-            scoreHits.results.length > 0 && (
-              <li key={outerIdx} value={outerIdx}>
-                <ol>
-                  {scoreHits.results.map((res, innerIdx) => (
-                    <li>
-                      <details
-                        open={range(scoreHits.startIdx, res.endIdx).some(
-                          (x) => !idxsCovered.has(x)
-                        )}
-                      >
-                        <summary>
-                          {typeof res.run === "string"
-                            ? res.run
-                            : res.run.cloze}
-                        </summary>
-                        <ol>
-                          {res.results.map((hit, wordIdx) => {
-                            if (!hit.word) {
-                              throw new Error("word expected");
-                            }
-                            const word = hit.word;
-                            return (
-                              <li>
-                                <sup>{hit.search}</sup> {renderKanji(hit.word)}{" "}
-                                「{renderKana(hit.word)}」 (#{hit.word.id})
-                                <ol>
-                                  {renderSenses(hit.word, tags).map(
-                                    (s, senseIdx) => (
-                                      <li>
-                                        <>
-                                          {s}{" "}
-                                          <button
-                                            onClick={() => {
-                                              setHits(
-                                                concatIfNew(
-                                                  hits,
-                                                  {
-                                                    startIdx:
-                                                      scoreHits.startIdx,
-                                                    endIdx: res.endIdx,
-                                                    word: word,
-                                                    sense: senseIdx,
-                                                  },
-                                                  (x) =>
-                                                    `${x.startIdx}/${x.endIdx}/${x.word.id}`
-                                                )
-                                              );
-                                            }}
-                                          >
-                                            Pick
-                                          </button>
-                                        </>
-                                      </li>
-                                    )
-                                  )}
-                                </ol>
-                              </li>
-                            );
-                          })}
-                        </ol>
-                      </details>
-                    </li>
-                  ))}
-                </ol>
-              </li>
-            )
-        )}
-      </ol>
+      <details open>
+        <summary>Selected dictionary entries</summary>
+        <ul>
+          {hits.map((h) => (
+            <li>
+              {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「
+              {renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
+              {renderSenses(h.word, tags)[h.sense]}
+            </li>
+          ))}
+        </ul>
+      </details>
+      <details open>
+        <summary>All dictionary entries matched</summary>
+        <ol>
+          {nlp.hits.map(
+            (scoreHits, outerIdx) =>
+              scoreHits.results.length > 0 && (
+                <li key={outerIdx} value={outerIdx}>
+                  <ol>
+                    {scoreHits.results.map((res, innerIdx) => (
+                      <li>
+                        <details
+                          open={range(scoreHits.startIdx, res.endIdx).some(
+                            (x) => !idxsCovered.has(x)
+                          )}
+                        >
+                          <summary>
+                            {typeof res.run === "string"
+                              ? res.run
+                              : res.run.cloze}
+                          </summary>
+                          <ol>
+                            {res.results.map((hit, wordIdx) => {
+                              if (!hit.word) {
+                                throw new Error("word expected");
+                              }
+                              const word = hit.word;
+                              return (
+                                <li>
+                                  <sup>{hit.search}</sup>{" "}
+                                  {renderKanji(hit.word)} 「
+                                  {renderKana(hit.word)}」 (#{hit.word.id})
+                                  <ol>
+                                    {renderSenses(hit.word, tags).map(
+                                      (s, senseIdx) => (
+                                        <li>
+                                          <>
+                                            {s}{" "}
+                                            <button
+                                              onClick={() => {
+                                                setHits(
+                                                  concatIfNew(
+                                                    hits,
+                                                    {
+                                                      startIdx:
+                                                        scoreHits.startIdx,
+                                                      endIdx: res.endIdx,
+                                                      word: word,
+                                                      sense: senseIdx,
+                                                    },
+                                                    (x) =>
+                                                      `${x.startIdx}/${x.endIdx}/${x.word.id}`
+                                                  )
+                                                );
+                                              }}
+                                            >
+                                              Pick
+                                            </button>
+                                          </>
+                                        </li>
+                                      )
+                                    )}
+                                  </ol>
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        </details>
+                      </li>
+                    ))}
+                  </ol>
+                </li>
+              )
+          )}
+        </ol>
+      </details>
     </div>
   );
 };
