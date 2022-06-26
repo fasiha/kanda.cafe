@@ -39,7 +39,7 @@ app.post('/save', (req, res) => {
   if (sentence && data && typeof sentence === 'string' &&
       typeof data === 'object' && Object.keys(data || {}).length > 0) {
     const md5 = createHash('md5').update(sentence).digest('hex');
-    writeFile(`../data/${md5}.json`, JSON.stringify(req.body));
+    writeFile(`../data/${md5}.json`, JSON.stringify(req.body, null, 1));
     res.status(200).send('ok');
   } else {
     res.status(400).send('invalid json')

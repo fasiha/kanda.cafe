@@ -157,128 +157,135 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         <Furigana vv={nlp.furigana} />
       </h2>
       <details open>
-        <summary>Selected dictionary entries</summary>
-        <ul>
-          {dictHits.map((h) => (
-            <li>
-              {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-              {renderSenses(h.word, tags)[h.sense]}
-            </li>
-          ))}
-        </ul>
-      </details>
-      <details open>
-        <summary>All conjugated phrases found</summary>
-        <ol>
-          {Object.values(clozes.conjugatedPhrases).map((phrase) => (
-            <li>
-              {phrase.cloze.cloze}{" "}
-              <button
-                disabled={!!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
-                onClick={() => setConjHits(concatIfNew(conjHits, phrase, conjugatedPhraseKey))}
-              >
-                Pick
-              </button>{" "}
-              <button
-                disabled={!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
-                onClick={() =>
-                  setConjHits(conjHits.filter((p) => conjugatedPhraseKey(p) !== conjugatedPhraseKey(phrase)))
-                }
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ol>
-      </details>
-      <details open>
-        <summary>All particles found</summary>
-        <ol>
-          {Object.values(clozes.particles).map(({ cloze, morphemes }) => {
-            return (
+        <summary>All annotations</summary>
+        <details open>
+          <summary>Selected dictionary entries</summary>
+          <ul>
+            {dictHits.map((h) => (
               <li>
-                <sub>{cloze.left}</sub>
-                {cloze.cloze}
-                <sub>{cloze.right}</sub>: {morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}
+                {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
+                {renderSenses(h.word, tags)[h.sense]}
               </li>
-            );
-          })}
-        </ol>
-      </details>
-      <details open>
-        <summary>All dictionary entries matched</summary>
-        <ol>
-          {nlp.hits.map(
-            (scoreHits, outerIdx) =>
-              scoreHits.results.length > 0 && (
-                <li key={outerIdx} value={outerIdx}>
-                  <ol>
-                    {scoreHits.results.map((res, innerIdx) => (
-                      <li>
-                        <details open={range(scoreHits.startIdx, res.endIdx).some((x) => !idxsCovered.has(x))}>
-                          <summary>{typeof res.run === "string" ? res.run : res.run.cloze}</summary>
-                          <ol>
-                            {res.results.map((hit, wordIdx) => {
-                              if (!hit.word) {
-                                throw new Error("word expected");
-                              }
-                              const word = hit.word;
-                              return (
-                                <li>
-                                  <sup>{hit.search}</sup> {renderKanji(hit.word)} 「{renderKana(hit.word)}」 (#
-                                  {hit.word.id})
-                                  <ol>
-                                    {renderSenses(hit.word, tags).map((s, senseIdx) => (
-                                      <li>
-                                        <>
-                                          {s}{" "}
-                                          <button
-                                            onClick={() => {
-                                              setDictHits(
-                                                concatIfNew(
-                                                  dictHits,
-                                                  {
-                                                    startIdx: scoreHits.startIdx,
-                                                    endIdx: res.endIdx,
-                                                    word: word,
-                                                    sense: senseIdx,
-                                                  },
-                                                  (x) => `${x.startIdx}/${x.endIdx}/${x.word.id}`
-                                                )
-                                              );
-                                            }}
-                                          >
-                                            Pick
-                                          </button>
-                                        </>
-                                      </li>
-                                    ))}
-                                  </ol>
-                                </li>
-                              );
-                            })}
-                          </ol>
-                        </details>
-                      </li>
-                    ))}
-                  </ol>
+            ))}
+          </ul>
+        </details>
+        <details open>
+          <summary>All conjugated phrases found</summary>
+          <ol>
+            {Object.values(clozes.conjugatedPhrases).map((phrase) => (
+              <li>
+                {phrase.cloze.cloze}{" "}
+                <button
+                  disabled={!!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
+                  onClick={() => setConjHits(concatIfNew(conjHits, phrase, conjugatedPhraseKey))}
+                >
+                  Pick
+                </button>{" "}
+                <button
+                  disabled={!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
+                  onClick={() =>
+                    setConjHits(conjHits.filter((p) => conjugatedPhraseKey(p) !== conjugatedPhraseKey(phrase)))
+                  }
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ol>
+        </details>
+        <details open>
+          <summary>All particles found</summary>
+          <ol>
+            {Object.values(clozes.particles).map(({ cloze, morphemes }) => {
+              return (
+                <li>
+                  <sub>{cloze.left}</sub>
+                  {cloze.cloze}
+                  <sub>{cloze.right}</sub>: {morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}
                 </li>
-              )
-          )}
-        </ol>
+              );
+            })}
+          </ol>
+        </details>
+        <details open>
+          <summary>All dictionary entries matched</summary>
+          <ol>
+            {nlp.hits.map(
+              (scoreHits, outerIdx) =>
+                scoreHits.results.length > 0 && (
+                  <li key={outerIdx} value={outerIdx}>
+                    <ol>
+                      {scoreHits.results.map((res, innerIdx) => (
+                        <li>
+                          <details open={range(scoreHits.startIdx, res.endIdx).some((x) => !idxsCovered.has(x))}>
+                            <summary>{typeof res.run === "string" ? res.run : res.run.cloze}</summary>
+                            <ol>
+                              {res.results.map((hit, wordIdx) => {
+                                if (!hit.word) {
+                                  throw new Error("word expected");
+                                }
+                                const word = hit.word;
+                                return (
+                                  <li>
+                                    <sup>{hit.search}</sup> {renderKanji(hit.word)} 「{renderKana(hit.word)}」 (#
+                                    {hit.word.id})
+                                    <ol>
+                                      {renderSenses(hit.word, tags).map((s, senseIdx) => (
+                                        <li>
+                                          <>
+                                            {s}{" "}
+                                            <button
+                                              onClick={() => {
+                                                setDictHits(
+                                                  concatIfNew(
+                                                    dictHits,
+                                                    {
+                                                      startIdx: scoreHits.startIdx,
+                                                      endIdx: res.endIdx,
+                                                      word: word,
+                                                      sense: senseIdx,
+                                                    },
+                                                    (x) => `${x.startIdx}/${x.endIdx}/${x.word.id}`
+                                                  )
+                                                );
+                                              }}
+                                            >
+                                              Pick
+                                            </button>
+                                          </>
+                                        </li>
+                                      ))}
+                                    </ol>
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                          </details>
+                        </li>
+                      ))}
+                    </ol>
+                  </li>
+                )
+            )}
+          </ol>
+        </details>
       </details>
     </div>
   );
 };
 
-export default function HomePage({ sentences }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const line = "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。";
-
+export default function HomePage({ sentences: sentencesDb }: InferGetStaticPropsType<typeof getStaticProps>) {
+  const sentences = [
+    "鳥の鳴き声が森の静かさを破った",
+    "昨日は寒かった",
+    "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
+  ];
   return (
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
-      <Annotate sentencesDb={sentences} line={"早い"} />
-      <Annotate sentencesDb={sentences} line={line} />
+      {sentences.map((line) => (
+        <Annotate key={line} line={line} sentencesDb={sentencesDb} />
+      ))}
     </div>
   );
 }
