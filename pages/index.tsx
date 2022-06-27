@@ -5,6 +5,7 @@ import { createElement, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 
 import { v1ResSentenceAnalyzed, Furigana, Xref, Word, Sense, ConjugatedPhrase } from "curtiz-japanese-nlp/interfaces";
+import { AdjDeconjugated, Deconjugated, DeconjugatedAuxiliary } from "kamiya-codec";
 
 interface FuriganaProps {
   vv: Furigana[][];
@@ -85,6 +86,13 @@ function concatIfNew<X, Y>(v: X[], x: X, key: (x: X) => Y) {
 function circleNumber(n: number): string {
   const circledNumbers = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿";
   return circledNumbers[n] || "" + n;
+}
+
+function renderDeconjugation(d: AdjDeconjugated | DeconjugatedAuxiliary | Deconjugated) {
+  if ("auxiliary" in d) {
+    return `${d.auxiliary}/${d.conjugation}`;
+  }
+  return d.conjugation;
 }
 
 interface Hit {
@@ -174,7 +182,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
           <ol>
             {Object.values(clozes.conjugatedPhrases).map((phrase) => (
               <li>
-                {phrase.cloze.cloze}{" "}
+                {phrase.cloze.cloze} {phrase.deconj.map(renderDeconjugation).join(" or ")}{" "}
                 <button
                   disabled={!!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
                   onClick={() => setConjHits(concatIfNew(conjHits, phrase, conjugatedPhraseKey))}
@@ -276,6 +284,9 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
 
 export default function HomePage({ sentences: sentencesDb }: InferGetStaticPropsType<typeof getStaticProps>) {
   const sentences = [
+    "静かなホテル",
+    "このホテルは静かだ",
+    "このホテルは静かじゃなかった",
     "鳥の鳴き声が森の静かさを破った",
     "昨日は寒かった",
     "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
