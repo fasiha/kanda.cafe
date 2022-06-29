@@ -204,12 +204,21 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         <details open>
           <summary>All particles found</summary>
           <ol>
-            {Object.values(clozes.particles).map(({ cloze, morphemes }) => {
+            {Object.values(clozes.particles).map(({ cloze, morphemes, chino }) => {
               return (
                 <li>
                   <sub>{cloze.left}</sub>
                   {cloze.cloze}
                   <sub>{cloze.right}</sub>: {morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}
+                  {chino.length && (
+                    <ul>
+                      {chino.map(([i, ps]) => (
+                        <li key={i}>
+                          Chino #{i} {ps.join("・")}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               );
             })}
@@ -290,6 +299,7 @@ export default function HomePage({ sentences: sentencesDb }: InferGetStaticProps
     "鳥の鳴き声が森の静かさを破った",
     "昨日は寒かった",
     "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
+    "動物でも人間の心が分かります",
   ];
   return (
     <div>
