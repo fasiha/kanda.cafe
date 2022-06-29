@@ -180,7 +180,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         <details open>
           <summary>All conjugated phrases found</summary>
           <ol>
-            {Object.values(clozes.conjugatedPhrases).map((phrase) => (
+            {clozes.conjugatedPhrases.map((phrase) => (
               <li>
                 {phrase.cloze.cloze} {phrase.deconj.map(renderDeconjugation).join(" or ")}{" "}
                 <button
@@ -204,7 +204,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         <details open>
           <summary>All particles found</summary>
           <ol>
-            {Object.values(clozes.particles).map(({ cloze, morphemes, chino }) => {
+            {clozes.particles.map(({ cloze, morphemes, chino }) => {
               return (
                 <li>
                   <sub>{cloze.left}</sub>
