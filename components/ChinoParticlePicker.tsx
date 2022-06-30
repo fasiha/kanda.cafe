@@ -57,12 +57,13 @@ interface ChinoParticlePickerProps {
   markdown: string;
   particleNumber: number;
   onChange: (x: string) => void;
+  currentValue?: string;
 }
-export function ChinoParticlePicker({ particleNumber, markdown, onChange }: ChinoParticlePickerProps) {
+export function ChinoParticlePicker({ particleNumber, markdown, currentValue, onChange }: ChinoParticlePickerProps) {
   const grouped = useMemo(() => toSections(markdown), [markdown]);
   return (
     <>
-      <select className={styles.select} onChange={(e) => onChange(e.target.value)}>
+      <select className={styles.select} onChange={(e) => onChange(e.target.value)} value={currentValue || ""}>
         <option value="">Pick as detailed a particle as possible</option>
         {(grouped.get(particleNumber) || []).map((p) => (
           <option key={p.sectionNo} value={p.sectionNo}>

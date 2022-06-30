@@ -4,7 +4,15 @@ import path from "path";
 import { createElement, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 
-import { v1ResSentenceAnalyzed, Furigana, Xref, Word, Sense, ConjugatedPhrase } from "curtiz-japanese-nlp/interfaces";
+import {
+  v1ResSentenceAnalyzed,
+  Furigana,
+  Xref,
+  Word,
+  Sense,
+  ConjugatedPhrase,
+  Particle,
+} from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated, DeconjugatedAuxiliary } from "kamiya-codec";
 import { ChinoParticlePicker } from "../components/ChinoParticlePicker";
 
@@ -76,13 +84,20 @@ function range(start: number, endExclusive: number, step = 1) {
   }
   return ret;
 }
-function concatIfNew<X, Y>(v: X[], x: X, key: (x: X) => Y) {
-  const ys = new Set(v.map(key));
-  const y = key(x);
-  if (ys.has(y)) {
-    return v;
+function upsertIfNew<X, Y>(v: X[], newx: X, key: (x: X) => Y) {
+  const newy = key(newx);
+  for (const [i, x] of v.entries()) {
+    const y = key(x);
+    if (y === newy) {
+      if (x === newx) {
+        return v;
+      }
+      const copy = v.slice();
+      copy[i] = newx;
+      return copy;
+    }
   }
-  return v.concat(x);
+  return v.concat(newx);
 }
 function circleNumber(n: number): string {
   const circledNumbers = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿";
@@ -103,10 +118,15 @@ interface Hit {
   sense: number;
 }
 
-const conjugatedPhraseKey = (x: ConjugatedPhrase): string => x.morphemes.map((o) => o.literal).join("");
+const clozeToKey = (x: Pick<ConjugatedPhrase, "startIdx" | "endIdx">): string => `${x.startIdx}-${x.endIdx}`;
+
+type AnnotatedParticle = Particle & { chinoTag: string };
 interface AnnotateProps {
   line: string;
-  sentencesDb: Record<string, { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[] } }>;
+  sentencesDb: Record<
+    string,
+    { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[]; particles: AnnotatedParticle[] } }
+  >;
   particlesMarkdown: string;
 }
 const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
@@ -117,6 +137,7 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
   const [dictHits, setDictHits] = useState<Hit[]>(sentencesDb[line]?.data?.dictHits || []);
   const [conjHits, setConjHits] = useState<ConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
+  const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
   const idxsCovered = new Set(dictHits.flatMap((o) => range(o.startIdx, o.endIdx)));
 
   useEffect(() => {
@@ -135,14 +156,14 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
   }, []);
 
   useEffect(() => {
-    if (dictHits.length > 0 || conjHits.length > 0) {
+    if (dictHits.length > 0 || conjHits.length > 0 || particles.length > 0) {
       (async function save() {
         const res = await fetch(`${HELPER_URL}/save`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sentence: line,
-            data: { dictHits, conjHits },
+            data: { dictHits, conjHits, particles },
           }),
         });
         if (!res.ok) {
@@ -152,7 +173,7 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
         }
       })();
     }
-  }, [dictHits, conjHits]);
+  }, [dictHits, conjHits, particles]);
 
   if (!nlp) {
     return <h2>{line}</h2>;
@@ -186,16 +207,14 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
               <li>
                 {phrase.cloze.cloze} {phrase.deconj.map(renderDeconjugation).join(" or ")}{" "}
                 <button
-                  disabled={!!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
-                  onClick={() => setConjHits(concatIfNew(conjHits, phrase, conjugatedPhraseKey))}
+                  disabled={!!conjHits.find((p) => clozeToKey(p) === clozeToKey(phrase))}
+                  onClick={() => setConjHits(upsertIfNew(conjHits, phrase, clozeToKey))}
                 >
                   Pick
                 </button>{" "}
                 <button
-                  disabled={!conjHits.find((p) => conjugatedPhraseKey(p) === conjugatedPhraseKey(phrase))}
-                  onClick={() =>
-                    setConjHits(conjHits.filter((p) => conjugatedPhraseKey(p) !== conjugatedPhraseKey(phrase)))
-                  }
+                  disabled={!conjHits.find((p) => clozeToKey(p) === clozeToKey(phrase))}
+                  onClick={() => setConjHits(conjHits.filter((p) => clozeToKey(p) !== clozeToKey(phrase)))}
                 >
                   Delete
                 </button>
@@ -206,21 +225,29 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
         <details open>
           <summary>All particles found</summary>
           <ol>
-            {clozes.particles.map(({ cloze, morphemes, chino }) => {
+            {clozes.particles.map((foundParticle) => {
               return (
                 <li>
-                  <sub>{cloze.left}</sub>
-                  {cloze.cloze}
-                  <sub>{cloze.right}</sub>: {morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}
-                  {chino.length && (
+                  <sub>{foundParticle.cloze.left}</sub>
+                  {foundParticle.cloze.cloze}
+                  <sub>{foundParticle.cloze.right}</sub>:{" "}
+                  {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}
+                  {foundParticle.chino.length && (
                     <ul>
-                      {chino.map(([i, ps]) => (
+                      {foundParticle.chino.map(([i, ps]) => (
                         <li key={i}>
                           Chino #{i} {ps.join("・")}{" "}
                           <ChinoParticlePicker
-                            onChange={(e) => console.log(e)}
                             particleNumber={i}
                             markdown={particlesMarkdown}
+                            currentValue={particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag}
+                            onChange={(e) =>
+                              setParticles(
+                                e
+                                  ? upsertIfNew(particles, { ...foundParticle, chinoTag: e }, clozeToKey)
+                                  : particles.filter((x) => clozeToKey(x) !== clozeToKey(foundParticle))
+                              )
+                            }
                           />
                         </li>
                       ))}
@@ -261,7 +288,7 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
                                             <button
                                               onClick={() => {
                                                 setDictHits(
-                                                  concatIfNew(
+                                                  upsertIfNew(
                                                     dictHits,
                                                     {
                                                       startIdx: scoreHits.startIdx,
@@ -303,13 +330,13 @@ export default function HomePage({
   particlesMarkdown,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
   const sentences = [
-    "静かなホテル",
+    // "静かなホテル",
     "このホテルは静かだ",
-    "このホテルは静かじゃなかった",
-    "鳥の鳴き声が森の静かさを破った",
-    "昨日は寒かった",
-    "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
-    "動物でも人間の心が分かります",
+    // "このホテルは静かじゃなかった",
+    // "鳥の鳴き声が森の静かさを破った",
+    // "昨日は寒かった",
+    // "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
+    // "動物でも人間の心が分かります",
   ];
   return (
     <div>
