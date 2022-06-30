@@ -6,6 +6,7 @@ import styles from "../styles/Home.module.css";
 
 import { v1ResSentenceAnalyzed, Furigana, Xref, Word, Sense, ConjugatedPhrase } from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated, DeconjugatedAuxiliary } from "kamiya-codec";
+import { ChinoParticlePicker } from "../components/ChinoParticlePicker";
 
 interface FuriganaProps {
   vv: Furigana[][];
@@ -106,8 +107,9 @@ const conjugatedPhraseKey = (x: ConjugatedPhrase): string => x.morphemes.map((o)
 interface AnnotateProps {
   line: string;
   sentencesDb: Record<string, { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[] } }>;
+  particlesMarkdown: string;
 }
-const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
+const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
   // This component will be called for lines that haven't been annotated yet.
   // This should not work in static-generated output, ideally it won't exist.
   const HELPER_URL = "http://localhost:3010";
@@ -214,7 +216,12 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
                     <ul>
                       {chino.map(([i, ps]) => (
                         <li key={i}>
-                          Chino #{i} {ps.join("・")}
+                          Chino #{i} {ps.join("・")}{" "}
+                          <ChinoParticlePicker
+                            onChange={(e) => console.log(e)}
+                            particleNumber={i}
+                            markdown={particlesMarkdown}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -291,7 +298,10 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   );
 };
 
-export default function HomePage({ sentences: sentencesDb }: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function HomePage({
+  sentences: sentencesDb,
+  particlesMarkdown,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
   const sentences = [
     "静かなホテル",
     "このホテルは静かだ",
@@ -305,7 +315,7 @@ export default function HomePage({ sentences: sentencesDb }: InferGetStaticProps
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
       {sentences.map((line) => (
-        <Annotate key={line} line={line} sentencesDb={sentencesDb} />
+        <Annotate key={line} line={line} sentencesDb={sentencesDb} particlesMarkdown={particlesMarkdown} />
       ))}
     </div>
   );
@@ -320,5 +330,7 @@ export const getStaticProps = async () => {
     jsons.map((j) => readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x)))
   );
   const obj = Object.fromEntries(sentences.map((s) => [s.sentence, s]));
-  return { props: { sentences: obj } };
+
+  const particlesMarkdown = await readFile("all-about-particles.md", "utf8");
+  return { props: { sentences: obj, particlesMarkdown } };
 };
