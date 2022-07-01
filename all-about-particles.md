@@ -2,7 +2,7 @@
 
 # All about particles
 1. は
-	1. Indicate information is being presented about something that is already known or that has been identified
+	1. Indicates that information is being presented about something that is already known or that has been identified
 	2. Indicates a topic, which is identified or explained
 	3. In the construction NはNが, は indicates a topic (the first noun) about which an aspect quality (the second noun) is explained
 	4. Used to show contrast between two items or ideas, both of which are signified by は

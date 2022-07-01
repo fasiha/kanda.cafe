@@ -346,20 +346,31 @@ export default function HomePage({
 }: InferGetStaticPropsType<typeof getStaticProps>) {
   setup(particlesMarkdown);
   const sentences = [
+    "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
+    "ブラウンは眠い目をこすりながら受話器を取りました",
     // "静かなホテル",
     // "このホテルは静かだ",
     // "このホテルは静かじゃなかった",
     // "鳥の鳴き声が森の静かさを破った",
     // "昨日は寒かった",
     // "動物でも人間の心が分かります",
-    "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
   ];
   return (
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
-      {sentences.map((line) => (
-        <Annotate key={line} line={line} sentencesDb={sentencesDb} particlesMarkdown={particlesMarkdown} />
-      ))}
+      <Annotate
+        key={sentences[0]}
+        line={sentences[0]}
+        sentencesDb={sentencesDb}
+        particlesMarkdown={particlesMarkdown}
+      />
+      <p>And the second.</p>
+      <Annotate
+        key={sentences[1]}
+        line={sentences[1]}
+        sentencesDb={sentencesDb}
+        particlesMarkdown={particlesMarkdown}
+      />
     </div>
   );
 }
