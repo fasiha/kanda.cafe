@@ -128,9 +128,8 @@ interface AnnotateProps {
     string,
     { data: { dictHits: Hit[]; conjHits: AnnotatedConjugatedPhrase[]; particles: AnnotatedParticle[] } }
   >;
-  particlesMarkdown: string;
 }
-const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
+const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   // This component will be called for lines that haven't been annotated yet.
   // This should not work in static-generated output, ideally it won't exist.
   const HELPER_URL = "http://localhost:3010";
@@ -345,7 +344,7 @@ export default function HomePage({
   particlesMarkdown,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
   setup(particlesMarkdown);
-  const sentences = [
+  const s = [
     "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
     "ブラウンは眠い目をこすりながら受話器を取りました",
     // "静かなホテル",
@@ -358,19 +357,9 @@ export default function HomePage({
   return (
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
-      <Annotate
-        key={sentences[0]}
-        line={sentences[0]}
-        sentencesDb={sentencesDb}
-        particlesMarkdown={particlesMarkdown}
-      />
+      <Annotate key={s[0]} line={s[0]} sentencesDb={sentencesDb} />
       <p>And the second.</p>
-      <Annotate
-        key={sentences[1]}
-        line={sentences[1]}
-        sentencesDb={sentencesDb}
-        particlesMarkdown={particlesMarkdown}
-      />
+      <Annotate key={s[1]} line={s[1]} sentencesDb={sentencesDb} />
     </div>
   );
 }
