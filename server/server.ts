@@ -1,7 +1,8 @@
 import cors from 'cors';
 import {createHash} from 'crypto';
 import express from 'express';
-import {writeFile} from 'fs/promises';
+import {constants} from 'fs';
+import {access, unlink, writeFile} from 'fs/promises';
 import fetch from 'isomorphic-fetch';
 
 const CURTIZ_URL = 'http://127.0.0.1:8133';
@@ -34,12 +35,25 @@ app.get('/sentence/:sentence', async (req, res) => {
   })
 });
 
-app.post('/save', (req, res) => {
+app.post('/sentence', (req, res) => {
   const {sentence, data} = req.body || {};
   if (sentence && data && typeof sentence === 'string' &&
       typeof data === 'object' && Object.keys(data || {}).length > 0) {
     const md5 = createHash('md5').update(sentence).digest('hex');
     writeFile(`../data/${md5}.json`, JSON.stringify(req.body, null, 1));
+    res.status(200).send('ok');
+  } else {
+    res.status(400).send('invalid json')
+  }
+});
+app.delete('/sentence', (req, res) => {
+  const {sentence} = req.body || {};
+  if (sentence && typeof sentence === 'string') {
+    const md5 = createHash('md5').update(sentence).digest('hex');
+    const todelete = `../data/${md5}.json`;
+    access(todelete, constants.F_OK | constants.W_OK)
+        .then(() => unlink(todelete))
+        .catch(() => {});
     res.status(200).send('ok');
   } else {
     res.status(400).send('invalid json')

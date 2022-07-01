@@ -156,23 +156,23 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
   }, []);
 
   useEffect(() => {
-    if (dictHits.length > 0 || conjHits.length > 0 || particles.length > 0) {
-      (async function save() {
-        const res = await fetch(`${HELPER_URL}/save`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sentence: line,
-            data: { dictHits, conjHits, particles },
-          }),
-        });
-        if (!res.ok) {
-          console.error(`${res.status} ${res.statusText}`);
-        } else {
-          console.log("saved");
-        }
-      })();
-    }
+    (async function save() {
+      const post = dictHits.length > 0 || conjHits.length > 0 || particles.length > 0;
+
+      const res = await fetch(`${HELPER_URL}/sentence`, {
+        method: post ? "POST" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sentence: line,
+          data: { dictHits, conjHits, particles },
+        }),
+      });
+      if (!res.ok) {
+        console.error(`${res.status} ${res.statusText}`);
+      } else {
+        console.log("saved");
+      }
+    })();
   }, [dictHits, conjHits, particles]);
 
   if (!nlp) {
