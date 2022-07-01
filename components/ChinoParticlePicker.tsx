@@ -1,12 +1,20 @@
-import { useMemo } from "react";
 import styles from "./ChinoParticlePicker.module.css";
 
-function toSections(markdown: string) {
+let chinoList: Map<
+  number,
+  {
+    leaf: boolean;
+    fullLine: string;
+    sectionNo: string;
+    description: string;
+  }[]
+> = new Map();
+
+export function setup(markdown: string): typeof chinoList {
   const lines = markdown.split("\n").filter((s) => s.match(/^\t*[0-9]/));
 
   const flat: { fullLine: string; sectionNo: string; description: string }[] = [];
   const nonleaf: Set<string> = new Set();
-  const parentOfLeaf: Set<string> = new Set();
 
   let prevIndent = 0;
   let currIdx = [0];
@@ -22,7 +30,6 @@ function toSections(markdown: string) {
     if (currIndent === prevIndent) {
       // same indent
       currIdx[currIdx.length - 1]++;
-      parentOfLeaf.add(currIdx.join("."));
     } else if (currIndent > prevIndent) {
       // increase indent
       nonleaf.add(currIdx.join("."));
@@ -42,7 +49,7 @@ function toSections(markdown: string) {
     prevIndent = currIndent;
   }
 
-  const ret = flat.map((o) => ({ ...o, parentOfLeaf: parentOfLeaf.has(o.sectionNo), leaf: !nonleaf.has(o.sectionNo) }));
+  const ret = flat.map((o) => ({ ...o, leaf: !nonleaf.has(o.sectionNo) }));
 
   const groups: Map<number, typeof ret> = new Map();
   for (const x of ret) {
@@ -50,22 +57,24 @@ function toSections(markdown: string) {
     groups.set(prefix, (groups.get(prefix) || []).concat(x));
   }
 
+  chinoList = groups;
+
   return groups;
 }
 
 interface ChinoParticlePickerProps {
-  markdown: string;
   particleNumber: number;
   onChange: (x: string) => void;
   currentValue?: string;
+  data?: typeof chinoList;
 }
-export function ChinoParticlePicker({ particleNumber, markdown, currentValue, onChange }: ChinoParticlePickerProps) {
-  const grouped = useMemo(() => toSections(markdown), [markdown]);
+export function ChinoParticlePicker({ particleNumber, currentValue, onChange, data }: ChinoParticlePickerProps) {
+  data = data || chinoList;
   return (
     <>
       <select className={styles.select} onChange={(e) => onChange(e.target.value)} value={currentValue || ""}>
         <option value="">Pick as detailed a particle as possible</option>
-        {(grouped.get(particleNumber) || []).map((p) => (
+        {(data.get(particleNumber) || []).map((p) => (
           <option key={p.sectionNo} value={p.sectionNo}>
             {p.sectionNo}. {p.leaf && `✅ `} {p.description}
           </option>

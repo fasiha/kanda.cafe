@@ -14,7 +14,7 @@ import {
   Particle,
 } from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated, DeconjugatedAuxiliary } from "kamiya-codec";
-import { ChinoParticlePicker } from "../components/ChinoParticlePicker";
+import { ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
 
 interface FuriganaProps {
   vv: Furigana[][];
@@ -239,7 +239,6 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
                           Chino #{i} {ps.join("・")}{" "}
                           <ChinoParticlePicker
                             particleNumber={i}
-                            markdown={particlesMarkdown}
                             currentValue={particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag}
                             onChange={(e) =>
                               setParticles(
@@ -329,6 +328,7 @@ export default function HomePage({
   sentences: sentencesDb,
   particlesMarkdown,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
+  setup(particlesMarkdown);
   const sentences = [
     // "静かなホテル",
     "このホテルは静かだ",
