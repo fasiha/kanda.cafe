@@ -120,12 +120,13 @@ interface Hit {
 
 const clozeToKey = (x: Pick<ConjugatedPhrase, "startIdx" | "endIdx">): string => `${x.startIdx}-${x.endIdx}`;
 
+type AnnotatedConjugatedPhrase = ConjugatedPhrase & { selectedDeconj: ConjugatedPhrase["deconj"][0] };
 type AnnotatedParticle = Particle & { chinoTag: string };
 interface AnnotateProps {
   line: string;
   sentencesDb: Record<
     string,
-    { data: { dictHits: Hit[]; conjHits: ConjugatedPhrase[]; particles: AnnotatedParticle[] } }
+    { data: { dictHits: Hit[]; conjHits: AnnotatedConjugatedPhrase[]; particles: AnnotatedParticle[] } }
   >;
   particlesMarkdown: string;
 }
@@ -136,7 +137,7 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
   const [dictHits, setDictHits] = useState<Hit[]>(sentencesDb[line]?.data?.dictHits || []);
-  const [conjHits, setConjHits] = useState<ConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
+  const [conjHits, setConjHits] = useState<AnnotatedConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
   const idxsCovered = new Set(dictHits.flatMap((o) => range(o.startIdx, o.endIdx)));
 
@@ -203,21 +204,43 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
         <details open>
           <summary>All conjugated phrases found</summary>
           <ol>
-            {clozes.conjugatedPhrases.map((phrase) => (
+            {clozes.conjugatedPhrases.map((foundConj) => (
               <li>
-                {phrase.cloze.cloze} {phrase.deconj.map(renderDeconjugation).join(" or ")}{" "}
-                <button
-                  disabled={!!conjHits.find((p) => clozeToKey(p) === clozeToKey(phrase))}
-                  onClick={() => setConjHits(upsertIfNew(conjHits, phrase, clozeToKey))}
-                >
-                  Pick
-                </button>{" "}
-                <button
-                  disabled={!conjHits.find((p) => clozeToKey(p) === clozeToKey(phrase))}
-                  onClick={() => setConjHits(conjHits.filter((p) => clozeToKey(p) !== clozeToKey(phrase)))}
-                >
-                  Delete
-                </button>
+                {foundConj.cloze.cloze}{" "}
+                {
+                  <select
+                    value={(function () {
+                      const key = clozeToKey(foundConj);
+                      const x = conjHits.find((dec) => clozeToKey(dec) === key)?.selectedDeconj;
+                      if (!x) return "0";
+                      const renderedX = renderDeconjugation(x);
+                      return foundConj.deconj.findIndex((p) => renderDeconjugation(p) === renderedX) + 1;
+                    })()}
+                    onChange={(e) => {
+                      const idx = +e.target.value;
+                      const phraseKey = clozeToKey(foundConj);
+                      setConjHits(
+                        idx
+                          ? upsertIfNew(
+                              conjHits,
+                              { ...foundConj, selectedDeconj: foundConj.deconj[idx - 1] },
+                              clozeToKey
+                            )
+                          : conjHits.filter((p) => clozeToKey(p) !== phraseKey)
+                      );
+                    }}
+                  >
+                    <option value="0">Pick one of {foundConj.deconj.length}</option>
+                    {foundConj.deconj.map((dec, idx) => {
+                      const readable = renderDeconjugation(dec);
+                      return (
+                        <option key={idx + 1} value={idx + 1}>
+                          {readable}
+                        </option>
+                      );
+                    })}
+                  </select>
+                }
               </li>
             ))}
           </ol>
@@ -324,12 +347,12 @@ export default function HomePage({
   setup(particlesMarkdown);
   const sentences = [
     // "静かなホテル",
-    "このホテルは静かだ",
-    "このホテルは静かじゃなかった",
-    "鳥の鳴き声が森の静かさを破った",
-    "昨日は寒かった",
+    // "このホテルは静かだ",
+    // "このホテルは静かじゃなかった",
+    // "鳥の鳴き声が森の静かさを破った",
+    // "昨日は寒かった",
+    // "動物でも人間の心が分かります",
     "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
-    "動物でも人間の心が分かります",
   ];
   return (
     <div>
