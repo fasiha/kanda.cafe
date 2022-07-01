@@ -231,26 +231,19 @@ const Annotate = ({ line, sentencesDb, particlesMarkdown }: AnnotateProps) => {
                   <sub>{foundParticle.cloze.left}</sub>
                   {foundParticle.cloze.cloze}
                   <sub>{foundParticle.cloze.right}</sub>:{" "}
-                  {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}
+                  {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}{" "}
                   {foundParticle.chino.length && (
-                    <ul>
-                      {foundParticle.chino.map(([i, ps]) => (
-                        <li key={i}>
-                          Chino #{i} {ps.join("・")}{" "}
-                          <ChinoParticlePicker
-                            particleNumber={i}
-                            currentValue={particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag}
-                            onChange={(e) =>
-                              setParticles(
-                                e
-                                  ? upsertIfNew(particles, { ...foundParticle, chinoTag: e }, clozeToKey)
-                                  : particles.filter((x) => clozeToKey(x) !== clozeToKey(foundParticle))
-                              )
-                            }
-                          />
-                        </li>
-                      ))}
-                    </ul>
+                    <ChinoParticlePicker
+                      particleNumbers={foundParticle.chino.map(([i]) => i)}
+                      currentValue={particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag}
+                      onChange={(e) =>
+                        setParticles(
+                          e
+                            ? upsertIfNew(particles, { ...foundParticle, chinoTag: e }, clozeToKey)
+                            : particles.filter((x) => clozeToKey(x) !== clozeToKey(foundParticle))
+                        )
+                      }
+                    />
                   )}
                 </li>
               );
@@ -332,11 +325,11 @@ export default function HomePage({
   const sentences = [
     // "静かなホテル",
     "このホテルは静かだ",
-    // "このホテルは静かじゃなかった",
-    // "鳥の鳴き声が森の静かさを破った",
-    // "昨日は寒かった",
-    // "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
-    // "動物でも人間の心が分かります",
+    "このホテルは静かじゃなかった",
+    "鳥の鳴き声が森の静かさを破った",
+    "昨日は寒かった",
+    "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
+    "動物でも人間の心が分かります",
   ];
   return (
     <div>

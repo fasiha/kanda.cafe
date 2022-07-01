@@ -63,23 +63,24 @@ export function setup(markdown: string): typeof chinoList {
 }
 
 interface ChinoParticlePickerProps {
-  particleNumber: number;
+  particleNumbers: number[];
   onChange: (x: string) => void;
   currentValue?: string;
   data?: typeof chinoList;
 }
-export function ChinoParticlePicker({ particleNumber, currentValue, onChange, data }: ChinoParticlePickerProps) {
+export function ChinoParticlePicker({ particleNumbers, currentValue, onChange, data }: ChinoParticlePickerProps) {
   data = data || chinoList;
+
   return (
-    <>
-      <select className={styles.select} onChange={(e) => onChange(e.target.value)} value={currentValue || ""}>
-        <option value="">Pick as detailed a particle as possible</option>
-        {(data.get(particleNumber) || []).map((p) => (
+    <select className={styles.select} onChange={(e) => onChange(e.target.value)} value={currentValue || ""}>
+      <option value="">Pick as detailed a particle as possible</option>
+      {particleNumbers
+        .flatMap((n) => data?.get(n) || [])
+        .map((p) => (
           <option key={p.sectionNo} value={p.sectionNo}>
             {p.sectionNo}. {p.leaf && `✅ `} {p.description}
           </option>
         ))}
-      </select>
-    </>
+    </select>
   );
 }
