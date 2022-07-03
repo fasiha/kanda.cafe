@@ -14,7 +14,7 @@ import {
   Particle,
 } from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
-import { ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
+import { ChinoMap, ChinoParticle, ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
 
 interface FuriganaProps {
   vv: Furigana[][];
@@ -346,13 +346,97 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   );
 };
 
+interface RenderSentenceProps {
+  line: string;
+  sentencesDb: SentenceDb;
+  tags: Record<string, string>;
+  chinoMap: Map<string, ChinoParticle>;
+}
+const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentenceProps) => {
+  const { furigana = [], dictHits = [], conjHits = [], particles = [] } = sentencesDb[line]?.data;
+  return (
+    <div>
+      <h2 lang={"ja"}>
+        <Furigana vv={furigana} />
+      </h2>
+      <details open>
+        <summary>Selected dictionary entries</summary>
+        <ul>
+          {dictHits.map((h) => (
+            <li>
+              {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
+              {renderSenses(h.word, tags)[h.sense]}
+            </li>
+          ))}
+        </ul>
+      </details>
+      <details open>
+        <summary>All conjugated phrases found</summary>
+        <ol>
+          {conjHits.map((foundConj) => (
+            <li>
+              {foundConj.cloze.cloze}{" "}
+              {(function () {
+                const key = clozeToKey(foundConj);
+                const x = conjHits.find((dec) => clozeToKey(dec) === key)?.selectedDeconj;
+                if (!x) return "0";
+                const renderedX = renderDeconjugation(x);
+                const found = (foundConj.deconj as Ugh<typeof foundConj.deconj>).find(
+                  (p) => renderDeconjugation(p) === renderedX
+                );
+                if (found) {
+                  return renderDeconjugation(found);
+                }
+              })()}
+            </li>
+          ))}
+        </ol>
+      </details>
+      <details open>
+        <summary>All particles found</summary>
+        <ol>
+          {particles.map((foundParticle) => {
+            return (
+              <li>
+                <>
+                  <sub>{foundParticle.cloze.left}</sub>
+                  {foundParticle.cloze.cloze}
+                  <sub>{foundParticle.cloze.right}</sub>:{" "}
+                  {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}{" "}
+                  {foundParticle.chino.length &&
+                    chinoMap.get(particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag || "")
+                      ?.fullLine}
+                </>
+              </li>
+            );
+          })}
+        </ol>
+      </details>
+    </div>
+  );
+};
+
 export default function HomePage({
   sentences: sentencesDb,
   particlesMarkdown,
+  tags,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
-  setup(particlesMarkdown);
+  const chinoMap = setup(particlesMarkdown).nestedMap;
 
-  const s = (s: string) => <Annotate key={s} line={s} sentencesDb={sentencesDb} />;
+  const [annotating, setAnnotating] = useState(new Set<string>());
+
+  const s = (s: string) =>
+    !annotating.has(s) ? (
+      <>
+        <RenderSentence key={s} line={s} sentencesDb={sentencesDb} tags={tags} chinoMap={chinoMap} />
+        <button onClick={() => setAnnotating(new Set(annotating).add(s))}>Annotate above</button>
+      </>
+    ) : (
+      <>
+        <Annotate key={s} line={s} sentencesDb={sentencesDb} />
+        <button onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}>Done annotating</button>
+      </>
+    );
   return (
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
@@ -377,7 +461,8 @@ export const getStaticProps = async () => {
   const obj: SentenceDb = Object.fromEntries(sentences.map((s) => [s.sentence, s])); // TODO validate
 
   const particlesMarkdown = await readFile("all-about-particles.md", "utf8");
-  return { props: { sentences: obj, particlesMarkdown } };
+  const tags: NonNullable<v1ResSentenceAnalyzed["tags"]> = JSON.parse(await readFile("tags.json", "utf8"));
+  return { props: { sentences: obj, particlesMarkdown, tags } };
 };
 
 async function saveDb(line: string, { dictHits, conjHits, particles, furigana }: SentenceDbEntry) {
@@ -397,3 +482,6 @@ async function saveDb(line: string, { dictHits, conjHits, particles, furigana }:
     console.log("saved");
   }
 }
+
+// https://stackoverflow.com/questions/70843127#comment128628953_70843200
+type Ugh<T> = (T extends (infer X)[] ? X : never)[];

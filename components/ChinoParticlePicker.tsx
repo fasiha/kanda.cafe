@@ -1,16 +1,15 @@
 import styles from "./ChinoParticlePicker.module.css";
 
-let chinoList: Map<
-  number,
-  {
-    leaf: boolean;
-    fullLine: string;
-    sectionNo: string;
-    description: string;
-  }[]
-> = new Map();
+export interface ChinoParticle {
+  leaf: boolean;
+  fullLine: string;
+  sectionNo: string;
+  description: string;
+}
+export type ChinoMap = Map<number, ChinoParticle[]>;
+let chinoMap: ChinoMap = new Map();
 
-export function setup(markdown: string): typeof chinoList {
+export function setup(markdown: string) {
   const lines = markdown.split("\n").filter((s) => s.match(/^\t*[0-9]/));
 
   const flat: { fullLine: string; sectionNo: string; description: string }[] = [];
@@ -57,19 +56,22 @@ export function setup(markdown: string): typeof chinoList {
     groups.set(prefix, (groups.get(prefix) || []).concat(x));
   }
 
-  chinoList = groups;
+  chinoMap = groups;
+  const nestedMap = new Map(
+    [...chinoMap.values()].flatMap((x) => x.map((x) => [x.sectionNo, x] as [string, ChinoParticle]))
+  );
 
-  return groups;
+  return { chinoMap, nestedMap };
 }
 
 interface ChinoParticlePickerProps {
   particleNumbers: number[];
   onChange: (x: string) => void;
   currentValue?: string;
-  data?: typeof chinoList;
+  data?: typeof chinoMap;
 }
 export function ChinoParticlePicker({ particleNumbers, currentValue, onChange, data }: ChinoParticlePickerProps) {
-  data = data || chinoList;
+  data = data || chinoMap;
 
   return (
     <select className={styles.select} onChange={(e) => onChange(e.target.value)} value={currentValue || ""}>
