@@ -61,7 +61,7 @@
 	6. Indicates one possibility: “… Or something”
 6. と
 	1. Follows nouns; indicates such meanings as “and“ and “with“ and sets off names
-		1. Joins nouns, usually two or three　(but not phrases and clauses): “and” (contrast with や #8.1)
+		1. Joins nouns, usually two or three (but not phrases and clauses): “and” (contrast with や #8.1)
 		2. Indicates a comparison or contrast: “and “or (one of choices asked for) “or”
 		3. “together, with“
 		4. \*Indicates a change or result (commonly used in the phrase となる) (に #13.8 is also used in this pattern; to is more formal and is commonly used in writing)

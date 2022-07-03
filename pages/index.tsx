@@ -449,7 +449,7 @@ export default function HomePage({
       {s("せっかちなんだから")}
       <p>We're onto the second page! (Page 3 in the book.)</p>
       {s("フム、どなたからでしたか？")}
-      {s("「マルチーズ所長です」")}
+      {s("「マルチーズ署長です」")}
       {s("「ワンコロ警察署まで来てくれって」おしりたんていとブラウンは急いで出かける準備をしました")}
     </div>
   );
