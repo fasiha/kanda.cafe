@@ -122,19 +122,25 @@ const clozeToKey = (x: Pick<ConjugatedPhrase, "startIdx" | "endIdx">): string =>
 
 type AnnotatedConjugatedPhrase = ConjugatedPhrase & { selectedDeconj: ConjugatedPhrase["deconj"][0] };
 type AnnotatedParticle = Particle & { chinoTag: string };
+interface SentenceDbEntry {
+  furigana: Furigana[][];
+  dictHits: Hit[];
+  conjHits: AnnotatedConjugatedPhrase[];
+  particles: AnnotatedParticle[];
+}
+type SentenceDb = Record<string, { data: SentenceDbEntry }>;
+
 interface AnnotateProps {
   line: string;
-  sentencesDb: Record<
-    string,
-    { data: { dictHits: Hit[]; conjHits: AnnotatedConjugatedPhrase[]; particles: AnnotatedParticle[] } }
-  >;
+  sentencesDb: SentenceDb;
 }
+// This should not work in static-generated output, ideally it won't exist.
+const HELPER_URL = "http://localhost:3010";
 const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   // This component will be called for lines that haven't been annotated yet.
-  // This should not work in static-generated output, ideally it won't exist.
-  const HELPER_URL = "http://localhost:3010";
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
+  const [furigana, setFurigana] = useState<Furigana[][]>(sentencesDb[line]?.data?.furigana || []);
   const [dictHits, setDictHits] = useState<Hit[]>(sentencesDb[line]?.data?.dictHits || []);
   const [conjHits, setConjHits] = useState<AnnotatedConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
@@ -156,24 +162,8 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   }, []);
 
   useEffect(() => {
-    (async function save() {
-      const post = dictHits.length > 0 || conjHits.length > 0 || particles.length > 0;
-
-      const res = await fetch(`${HELPER_URL}/sentence`, {
-        method: post ? "POST" : "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sentence: line,
-          data: { dictHits, conjHits, particles },
-        }),
-      });
-      if (!res.ok) {
-        console.error(`${res.status} ${res.statusText}`);
-      } else {
-        console.log("saved");
-      }
-    })();
-  }, [dictHits, conjHits, particles]);
+    saveDb(line, { dictHits, conjHits, particles, furigana });
+  }, [dictHits, conjHits, particles, furigana]);
 
   if (!nlp) {
     return <h2>{line}</h2>;
@@ -187,6 +177,23 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
       <h2 lang={"ja"}>
         <Furigana vv={nlp.furigana} />
       </h2>
+      {furigana.length ? (
+        <button
+          onClick={() => {
+            setFurigana([]);
+          }}
+        >
+          Delete furigana
+        </button>
+      ) : (
+        <button
+          onClick={() => {
+            setFurigana(nlp.furigana);
+          }}
+        >
+          Approve furigana
+        </button>
+      )}
       <details open>
         <summary>All annotations</summary>
         <details open>
@@ -367,8 +374,26 @@ export const getStaticProps = async () => {
   const sentences = await Promise.all(
     jsons.map((j) => readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x)))
   );
-  const obj = Object.fromEntries(sentences.map((s) => [s.sentence, s]));
+  const obj: SentenceDb = Object.fromEntries(sentences.map((s) => [s.sentence, s])); // TODO validate
 
   const particlesMarkdown = await readFile("all-about-particles.md", "utf8");
   return { props: { sentences: obj, particlesMarkdown } };
 };
+
+async function saveDb(line: string, { dictHits, conjHits, particles, furigana }: SentenceDbEntry) {
+  const post = dictHits.length > 0 || conjHits.length > 0 || particles.length > 0 || furigana.length > 0;
+  const data: SentenceDbEntry = { dictHits, conjHits, particles, furigana };
+  const res = await fetch(`${HELPER_URL}/sentence`, {
+    method: post ? "POST" : "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sentence: line,
+      data,
+    }),
+  });
+  if (!res.ok) {
+    console.error(`${res.status} ${res.statusText}`);
+  } else {
+    console.log("saved");
+  }
+}
