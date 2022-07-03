@@ -344,28 +344,17 @@ export default function HomePage({
   particlesMarkdown,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
   setup(particlesMarkdown);
-  const s = [
-    "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
-    "ブラウンは眠い目をこすりながら受話器を取りました",
-    "わしじゃ！",
-    "今すぐワンコロ警察署に来てくれたまえ！",
-    "せっかちなんだから",
-    // "静かなホテル",
-    // "このホテルは静かだ",
-    // "このホテルは静かじゃなかった",
-    // "鳥の鳴き声が森の静かさを破った",
-    // "昨日は寒かった",
-    // "動物でも人間の心が分かります",
-  ];
+
+  const s = (s: string) => <Annotate key={s} line={s} sentencesDb={sentencesDb} />;
   return (
     <div>
       <p>Here's the first line of Oshiri Tantei #3.</p>
-      <Annotate key={s[0]} line={s[0]} sentencesDb={sentencesDb} />
+      {s("ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。")}
       <p>And the second.</p>
-      <Annotate key={s[1]} line={s[1]} sentencesDb={sentencesDb} />
-      <Annotate key={s[2]} line={s[2]} sentencesDb={sentencesDb} />
-      <Annotate key={s[3]} line={s[3]} sentencesDb={sentencesDb} />
-      <Annotate key={s[4]} line={s[4]} sentencesDb={sentencesDb} />
+      {s("ブラウンは眠い目をこすりながら受話器を取りました")}
+      {s("わしじゃ！")}
+      {s("今すぐワンコロ警察署に来てくれたまえ！")}
+      {s("せっかちなんだから")}
     </div>
   );
 }
