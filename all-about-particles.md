@@ -24,8 +24,8 @@
 		9. Indicates the object of verbs of ability (できる, わける, and potential forms of verbs)
 		10. Indicates the object of verbs of sensation (みえる and きこえる) as well as する in certain uses
 		11. Indicates the object of verbs and adjectives of necessity (ひつようだ, いる)
-		12. Indicates the object of adjectives of desire (ほしい and the -たい forms). Compare to the use of を (#18, no. 5) with the -がる and -たい forms of verbs
-		13. Indicates the object of verbs and adjectives of emotion (すきだ, きらいだ, うれしい, かなしい, こわい, しんぱいする, etc.). Compare the use of を (#18, no. 5) with the -がる and -たい forms of verbs
+		12. Indicates the object of adjectives of desire (ほしい and the -たい forms). Compare to the use of を (#18.5) with the -がる and -たい forms of verbs
+		13. Indicates the object of verbs and adjectives of emotion (すきだ, きらいだ, うれしい, かなしい, こわい, しんぱいする, etc.). Compare the use of を (#18.5) with the -がる and -たい forms of verbs
 		14. Indicates the object of adjectives of ability (じょうずな, へたな, とくいな, きような, etc.)
 	2. Use between closes (and sometimes the end of sentences), usually with the meaning “but”
 		1. Used between two clauses to indicate that they are opposed and meaning (see #2.2.3 below): “but, although”
@@ -130,7 +130,7 @@
 		2. Indicates movement from a large to smaller abstract place
 	5. Indicates movement towards a place: “to” (へ #16.1 can also be used here)
 	6. Indicates the object of an action: “to”
-		1. Used after a noun. The distinction between this usage and that in no. 5 is that here the noun implies an action
+		1. Used after a noun. The distinction between this usage and that in #13.5 is that here the noun implies an action
 		2. Used after the base of a -ます verb
 	7. Indicates the recipient of an action (in English, equivalent to the indirect object): “to, from” (when the meaning is “to”, へ may replace に; when the meaning is “from”, から may replace に
 	8. Indicates the result of a change or an impending change
