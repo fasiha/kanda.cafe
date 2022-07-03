@@ -106,7 +106,7 @@ function circleNumber(n: number): string {
 
 function renderDeconjugation(d: AdjDeconjugated | Deconjugated) {
   if ("auxiliaries" in d) {
-    return `${d.auxiliaries.join("/")}//${d.conjugation}`;
+    return `${d.auxiliaries.join(" + ")} + ${d.conjugation}`;
   }
   return d.conjugation;
 }
@@ -212,7 +212,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
           <ol>
             {clozes.conjugatedPhrases.map((foundConj) => (
               <li>
-                {foundConj.cloze.cloze}{" "}
+                {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
                 {
                   <select
                     value={(function () {
@@ -376,7 +376,7 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
         <ol>
           {conjHits.map((foundConj) => (
             <li>
-              {foundConj.cloze.cloze}{" "}
+              {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
               {(function () {
                 const key = clozeToKey(foundConj);
                 const x = conjHits.find((dec) => clozeToKey(dec) === key)?.selectedDeconj;
