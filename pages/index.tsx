@@ -353,11 +353,12 @@ interface RenderSentenceProps {
   chinoMap: Map<string, ChinoParticle>;
 }
 const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentenceProps) => {
-  const { furigana = [], dictHits = [], conjHits = [], particles = [] } = sentencesDb[line]?.data;
+  const { furigana = [], dictHits = [], conjHits = [], particles = [] } = sentencesDb[line]?.data || {};
+  const className = furigana.length === 0 ? "no-furigana" : "";
   return (
     <div>
-      <h2 lang={"ja"}>
-        <Furigana vv={furigana} />
+      <h2 className={styles[className]} lang={"ja"}>
+        {furigana.length ? <Furigana vv={furigana} /> : line}
       </h2>
       <details open>
         <summary>Selected dictionary entries</summary>
@@ -446,6 +447,10 @@ export default function HomePage({
       {s("わしじゃ！")}
       {s("今すぐワンコロ警察署に来てくれたまえ！")}
       {s("せっかちなんだから")}
+      <p>We're onto the second page! (Page 3 in the book.)</p>
+      {s("フム、どなたからでしたか？")}
+      {s("「マルチーズ所長です」")}
+      {s("「ワンコロ警察署まで来てくれって」おしりたんていとブラウンは急いで出かける準備をしました")}
     </div>
   );
 }
