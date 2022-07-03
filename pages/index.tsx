@@ -13,7 +13,7 @@ import {
   ConjugatedPhrase,
   Particle,
 } from "curtiz-japanese-nlp/interfaces";
-import { AdjDeconjugated, Deconjugated, DeconjugatedAuxiliary } from "kamiya-codec";
+import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
 import { ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
 
 interface FuriganaProps {
@@ -104,9 +104,9 @@ function circleNumber(n: number): string {
   return circledNumbers[n] || "" + n;
 }
 
-function renderDeconjugation(d: AdjDeconjugated | DeconjugatedAuxiliary | Deconjugated) {
-  if ("auxiliary" in d) {
-    return `${d.auxiliary}/${d.conjugation}`;
+function renderDeconjugation(d: AdjDeconjugated | Deconjugated) {
+  if ("auxiliaries" in d) {
+    return `${d.auxiliaries.join("/")}//${d.conjugation}`;
   }
   return d.conjugation;
 }
@@ -347,6 +347,9 @@ export default function HomePage({
   const s = [
     "ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。",
     "ブラウンは眠い目をこすりながら受話器を取りました",
+    "わしじゃ！",
+    "今すぐワンコロ警察署に来てくれたまえ！",
+    "せっかちなんだから",
     // "静かなホテル",
     // "このホテルは静かだ",
     // "このホテルは静かじゃなかった",
@@ -360,6 +363,9 @@ export default function HomePage({
       <Annotate key={s[0]} line={s[0]} sentencesDb={sentencesDb} />
       <p>And the second.</p>
       <Annotate key={s[1]} line={s[1]} sentencesDb={sentencesDb} />
+      <Annotate key={s[2]} line={s[2]} sentencesDb={sentencesDb} />
+      <Annotate key={s[3]} line={s[3]} sentencesDb={sentencesDb} />
+      <Annotate key={s[4]} line={s[4]} sentencesDb={sentencesDb} />
     </div>
   );
 }
