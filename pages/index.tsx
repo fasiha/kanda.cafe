@@ -15,6 +15,7 @@ import {
 } from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
 import { ChinoParticle, ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
+import { SimpleCharacter } from "curtiz-japanese-nlp/kanjidic";
 
 interface FuriganaProps {
   vv: Furigana[][];
@@ -166,7 +167,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   }, [dictHits, conjHits, particles, furigana]);
 
   if (!nlp) {
-    return <h2>{line}</h2>;
+    return <h2 lang={"ja"}>{furigana.length ? <Furigana vv={furigana} /> : line}</h2>;
   }
   if (!nlp.tags || !nlp.clozes) {
     throw new Error("tags/clozes expected");
@@ -196,6 +197,14 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
       )}
       <details open>
         <summary>All annotations</summary>
+        {Object.keys(nlp.kanjidic).length ? (
+          <details open>
+            <summary>Kanji</summary>
+            <Kanjidic hits={nlp.kanjidic} />
+          </details>
+        ) : (
+          <></>
+        )}
         <details open>
           <summary>Selected dictionary entries</summary>
           <ul>
@@ -488,6 +497,51 @@ export default function HomePage({
       {s("諸君、詳しい説明を頼む")}
     </div>
   );
+}
+
+interface KanjidicProps {
+  hits: v1ResSentenceAnalyzed["kanjidic"];
+}
+function Kanjidic({ hits }: KanjidicProps) {
+  return (
+    <ul>
+      {Object.values(hits).map((dic) => (
+        <li>
+          {renderKanjidicRoot(dic)}
+          <ul>
+            {dic.dependencies.map((root) => (
+              <KanjidicChild root={root} />
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  );
+}
+interface KanjidicChildProps {
+  root: v1ResSentenceAnalyzed["kanjidic"][string]["dependencies"][number];
+}
+function KanjidicChild({ root }: KanjidicChildProps) {
+  if (!root.nodeMapped) {
+    return <li>{root.node}</li>;
+  }
+  return (
+    <li>
+      {renderKanjidicRoot(root.nodeMapped)}
+      <ul>
+        {root.children.map((child) => (
+          <KanjidicChild root={child} />
+        ))}
+      </ul>
+    </li>
+  );
+}
+function renderKanjidicRoot(k: SimpleCharacter) {
+  const ret = `${k.literal} 「${k.readings.join("・")}」 ${k.meanings.join("; ")}`;
+  if (k.nanori.length) {
+    return ret + ` (名: ${k.nanori.join("・")})`;
+  }
+  return ret;
 }
 
 export const getStaticProps = async () => {
