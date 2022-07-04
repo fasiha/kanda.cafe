@@ -138,7 +138,7 @@
 	10. Indicates the agent of a passive verb (the person or thing performing the action): “by”
 	11. Indicates the person(s) made to do something in a causative sentence
 	12. Indicates the agent of a causative-passive verb (the person or thing performing the action): “by”
-	13. \*Joins nouns (usually three or more): “and” (this usage of に　is equivalent to と #6.1.1 but is more commonly found in writing)
+	13. \*Joins nouns (usually three or more): “and” (this usage of に is equivalent to と #6.1.1 but is more commonly found in writing)
 	14. \*Indicates a pair of people or things that are commonly mentioned together: “and”
 	15. \*Indicates the basis on which, or means by which, an action takes place (usually used with the verbs 基づく (to be based on) and よる/依る (owing to)
 14. へ (in both of the usages below, に may replace へ, except when へ is followed by の)
