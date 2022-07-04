@@ -138,6 +138,10 @@ const clozeToKey = (x: Pick<ConjugatedPhrase, "startIdx" | "endIdx">): string =>
 
 type AnnotatedConjugatedPhrase = ConjugatedPhrase & { selectedDeconj: ConjugatedPhrase["deconj"][0] };
 type AnnotatedParticle = Particle & { chinoTag: string };
+interface DependencyTree {
+  tree: Record<number, number[]>;
+  nodes: { idx: number; startMorphemeIdx: number; endMorphemeIdx: number }[];
+}
 interface SentenceDbEntry {
   furigana: Furigana[][];
   dictHits: Hit[];
@@ -146,6 +150,62 @@ interface SentenceDbEntry {
   kanjidic: v1ResSentenceAnalyzed["kanjidic"];
 }
 type SentenceDb = Record<string, { data: SentenceDbEntry }>;
+
+const makeEmptyDependencyTree = (): DependencyTree => ({ tree: {}, nodes: [] });
+function bunsetsuToDependencyTree(bunsetsus: v1ResSentenceAnalyzed["bunsetsus"]): DependencyTree {
+  const ret = makeEmptyDependencyTree();
+  let startMorphemeIdx = 0;
+  for (const { idx, morphemes, parent } of bunsetsus) {
+    ret.nodes.push({ idx, startMorphemeIdx, endMorphemeIdx: startMorphemeIdx + morphemes.length });
+    ret.tree[parent] = (ret.tree[parent] || []).concat(idx);
+    startMorphemeIdx += morphemes.length;
+  }
+  return ret;
+}
+interface JdeppProps {
+  depTree: DependencyTree;
+  furigana: Furigana[][];
+  rootIdx?: number;
+}
+function Jdepp({ depTree, furigana, rootIdx = -1 }: JdeppProps) {
+  const { tree, nodes } = depTree;
+  const node = nodes.find((n) => n.idx === rootIdx);
+  const f = node ? furigana.slice(node.startMorphemeIdx, node.endMorphemeIdx) : [];
+
+  console.log({ tree, nodes });
+  // return <></>;
+
+  if (rootIdx in tree) {
+    // non-leaf nodes
+    if (!node) {
+      // root
+      return (
+        <div className="dep-tree-root">
+          {tree[rootIdx].map((r) => (
+            <Jdepp depTree={depTree} furigana={furigana} rootIdx={r} />
+          ))}
+        </div>
+      );
+    }
+    return (
+      <div className="dep-tree-node">
+        {tree[-1].map((r) => (
+          <Jdepp depTree={depTree} furigana={furigana} rootIdx={r} />
+        ))}
+        <Furigana vv={f} />
+      </div>
+    );
+  }
+  // leaf
+  if (node) {
+    return (
+      <div className="dep-tree-node">
+        <Furigana vv={f} />
+      </div>
+    );
+  }
+  throw new Error("?");
+}
 
 interface AnnotateProps {
   line: string;
@@ -162,6 +222,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   const [conjHits, setConjHits] = useState<AnnotatedConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
   const [kanjidic, setKanjidic] = useState<undefined | SentenceDbEntry["kanjidic"]>(sentencesDb[line]?.data?.kanjidic);
+  const [depTree, setDepTree] = useState(makeEmptyDependencyTree());
   const idxsCovered = new Set(dictHits.flatMap((o) => range(o.startIdx, o.endIdx)));
 
   useEffect(() => {
@@ -172,9 +233,10 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         const req = await fetch(`${HELPER_URL}/sentence/${line}`, {
           headers: { Accept: "application/json" },
         });
-        const data = await req.json();
+        const data: v1ResSentenceAnalyzed = await req.json();
         setNlp(data);
         setKanjidic(data.kanjidic);
+        setDepTree(bunsetsuToDependencyTree(data.bunsetsus));
         console.log("nlp", data);
       })();
     }
@@ -196,6 +258,9 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
       <h2 lang={"ja"}>
         <Furigana vv={nlp.furigana} />
       </h2>
+      <section>
+        <Jdepp depTree={depTree} furigana={furigana} rootIdx={-1} />
+      </section>
       {furigana.length && kanjidic !== undefined ? (
         <button
           onClick={() => {

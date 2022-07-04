@@ -8,3 +8,16 @@ details {
   padding-left: 1em;
   border-left: 4px solid lightgray;
 }
+
+div.dep-tree-node > div.dep-tree-node {
+  margin-right: 2em;
+}
+div.dep-tree-node {
+  /* padding-right: 1em; */
+  text-align: right;
+  background-color: #d0a0a040;
+  border-radius: 10% 0% 0% 10%;
+}
+div.dep-tree-root {
+  width: max-content;
+}
