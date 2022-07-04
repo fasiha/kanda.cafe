@@ -50,7 +50,7 @@
 	7. Indicates approximation (by showing an approximate upper limit) regarding number or quantity: “around, up to”
 4. ても・でも
 	1. “Even if, even though“
-	2. After verbs, used in conjunction with interrogative‘s for emphasis: “no matter where (who, what, etc.)“
+	2. After verbs, used in conjunction with interrogatives for emphasis: “no matter where (who, what, etc.)“
 	3. Emphasizes an approximate limit: “at the most“
 5. でも
 	1. Used of pronounced emphasize a hypothetical: “even, even if”
@@ -112,7 +112,7 @@
 	3. Indicates materials used: "of come from, with"
 	4. Indicates the greatest (largest, smallest, least, oldest, newest, etc. end parentheses
 	5. Indicates amount and scope: “within the space (time) of,  in, for”
-	6. Indicates the mood or condition of the agent of an action (not to be confused with the subject)
+	6. Indicates the mode or condition of the agent of an action (not to be confused with the subject)
 	7. Indicates time or age: "when, at the age of"
 	8. Indicates the reason for something: "because of"
 13. に
