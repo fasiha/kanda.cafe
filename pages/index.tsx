@@ -17,6 +17,21 @@ import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
 import { ChinoParticle, ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
 import { SimpleCharacter } from "curtiz-japanese-nlp/kanjidic";
 
+export const getStaticProps = async () => {
+  // might only print if you restart next dev server
+  const parentDir = path.join(process.cwd(), "data");
+  const jsons = (await readdir(parentDir)).filter((f) => f.toLowerCase().endsWith(".json"));
+  console.log("ls", jsons);
+  const sentences = await Promise.all(
+    jsons.map((j) => readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x)))
+  );
+  const obj: SentenceDb = Object.fromEntries(sentences.map((s) => [s.sentence, s])); // TODO validate
+
+  const particlesMarkdown = await readFile("all-about-particles.md", "utf8");
+  const tags: NonNullable<v1ResSentenceAnalyzed["tags"]> = JSON.parse(await readFile("tags.json", "utf8"));
+  return { props: { sentences: obj, particlesMarkdown, tags } };
+};
+
 interface FuriganaProps {
   vv: Furigana[][];
 }
@@ -453,6 +468,77 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
   );
 };
 
+interface KanjidicProps {
+  hits: v1ResSentenceAnalyzed["kanjidic"];
+}
+function Kanjidic({ hits }: KanjidicProps) {
+  return (
+    <ul>
+      {Object.values(hits).map((dic) => (
+        <li>
+          {renderKanjidicRoot(dic)}
+          <ul>
+            {dic.dependencies.map((root) => (
+              <KanjidicChild root={root} />
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  );
+}
+interface KanjidicChildProps {
+  root: v1ResSentenceAnalyzed["kanjidic"][string]["dependencies"][number];
+}
+function KanjidicChild({ root }: KanjidicChildProps) {
+  if (!root.nodeMapped) {
+    return <li>{root.node}</li>;
+  }
+  return (
+    <li>
+      {renderKanjidicRoot(root.nodeMapped)}
+      <ul>
+        {root.children.map((child) => (
+          <KanjidicChild root={child} />
+        ))}
+      </ul>
+    </li>
+  );
+}
+function renderKanjidicRoot(k: SimpleCharacter) {
+  const ret = `${k.literal} 「${k.readings.join("・")}」 ${k.meanings.join("; ")}`;
+  if (k.nanori.length) {
+    return ret + ` (名: ${k.nanori.join("・")})`;
+  }
+  return ret;
+}
+
+async function saveDb(line: string, { dictHits, conjHits, particles, furigana, kanjidic }: SentenceDbEntry) {
+  const post =
+    dictHits.length > 0 ||
+    conjHits.length > 0 ||
+    particles.length > 0 ||
+    furigana.length > 0 ||
+    Object.keys(kanjidic).length > 0;
+  const data: SentenceDbEntry = { dictHits, conjHits, particles, furigana, kanjidic };
+  const res = await fetch(`${HELPER_URL}/sentence`, {
+    method: post ? "POST" : "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sentence: line,
+      data,
+    }),
+  });
+  if (!res.ok) {
+    console.error(`${res.status} ${res.statusText}`);
+  } else {
+    console.log("saved");
+  }
+}
+
+// https://stackoverflow.com/questions/70843127#comment128628953_70843200
+type Ugh<T> = (T extends (infer X)[] ? X : never)[];
+
 export default function HomePage({
   sentences: sentencesDb,
   particlesMarkdown,
@@ -512,93 +598,11 @@ export default function HomePage({
       {s("ブラックシャドー団という面倒な奴らが現われてな。")}
       {s("諸君、詳しい説明を頼む")}
       {s("ブラックシャドー団は集団で盗みを行う窃盗団でお金持ちの家を狙い、家にある物全て根こそぎ盗んでいきます。")}
+      <p>
+        Learner's note: see Kamiya <em>Handbook of Japanese Verbs</em>, page 54, for more on the "Vconj + Vconj + masu"
+        form.
+      </p>
       {s("メンバーは沢山いて、いくら捕まえても一向に減らないのです")}
     </div>
   );
 }
-
-interface KanjidicProps {
-  hits: v1ResSentenceAnalyzed["kanjidic"];
-}
-function Kanjidic({ hits }: KanjidicProps) {
-  return (
-    <ul>
-      {Object.values(hits).map((dic) => (
-        <li>
-          {renderKanjidicRoot(dic)}
-          <ul>
-            {dic.dependencies.map((root) => (
-              <KanjidicChild root={root} />
-            ))}
-          </ul>
-        </li>
-      ))}
-    </ul>
-  );
-}
-interface KanjidicChildProps {
-  root: v1ResSentenceAnalyzed["kanjidic"][string]["dependencies"][number];
-}
-function KanjidicChild({ root }: KanjidicChildProps) {
-  if (!root.nodeMapped) {
-    return <li>{root.node}</li>;
-  }
-  return (
-    <li>
-      {renderKanjidicRoot(root.nodeMapped)}
-      <ul>
-        {root.children.map((child) => (
-          <KanjidicChild root={child} />
-        ))}
-      </ul>
-    </li>
-  );
-}
-function renderKanjidicRoot(k: SimpleCharacter) {
-  const ret = `${k.literal} 「${k.readings.join("・")}」 ${k.meanings.join("; ")}`;
-  if (k.nanori.length) {
-    return ret + ` (名: ${k.nanori.join("・")})`;
-  }
-  return ret;
-}
-
-export const getStaticProps = async () => {
-  // might only print if you restart next dev server
-  const parentDir = path.join(process.cwd(), "data");
-  const jsons = (await readdir(parentDir)).filter((f) => f.toLowerCase().endsWith(".json"));
-  console.log("ls", jsons);
-  const sentences = await Promise.all(
-    jsons.map((j) => readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x)))
-  );
-  const obj: SentenceDb = Object.fromEntries(sentences.map((s) => [s.sentence, s])); // TODO validate
-
-  const particlesMarkdown = await readFile("all-about-particles.md", "utf8");
-  const tags: NonNullable<v1ResSentenceAnalyzed["tags"]> = JSON.parse(await readFile("tags.json", "utf8"));
-  return { props: { sentences: obj, particlesMarkdown, tags } };
-};
-
-async function saveDb(line: string, { dictHits, conjHits, particles, furigana, kanjidic }: SentenceDbEntry) {
-  const post =
-    dictHits.length > 0 ||
-    conjHits.length > 0 ||
-    particles.length > 0 ||
-    furigana.length > 0 ||
-    Object.keys(kanjidic).length > 0;
-  const data: SentenceDbEntry = { dictHits, conjHits, particles, furigana, kanjidic };
-  const res = await fetch(`${HELPER_URL}/sentence`, {
-    method: post ? "POST" : "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sentence: line,
-      data,
-    }),
-  });
-  if (!res.ok) {
-    console.error(`${res.status} ${res.statusText}`);
-  } else {
-    console.log("saved");
-  }
-}
-
-// https://stackoverflow.com/questions/70843127#comment128628953_70843200
-type Ugh<T> = (T extends (infer X)[] ? X : never)[];
