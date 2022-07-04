@@ -14,7 +14,7 @@ import {
   Particle,
 } from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
-import { ChinoMap, ChinoParticle, ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
+import { ChinoParticle, ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
 
 interface FuriganaProps {
   vv: Furigana[][];
@@ -360,59 +360,70 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
       <h2 className={styles[className]} lang={"ja"}>
         {furigana.length ? <Furigana vv={furigana} /> : line}
       </h2>
-      <details open>
-        <summary>Selected dictionary entries</summary>
-        <ul>
-          {dictHits.map((h) => (
-            <li>
-              {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-              {renderSenses(h.word, tags)[h.sense]}
-            </li>
-          ))}
-        </ul>
-      </details>
-      <details open>
-        <summary>All conjugated phrases found</summary>
-        <ol>
-          {conjHits.map((foundConj) => (
-            <li>
-              {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
-              {(function () {
-                const key = clozeToKey(foundConj);
-                const x = conjHits.find((dec) => clozeToKey(dec) === key)?.selectedDeconj;
-                if (!x) return "0";
-                const renderedX = renderDeconjugation(x);
-                const found = (foundConj.deconj as Ugh<typeof foundConj.deconj>).find(
-                  (p) => renderDeconjugation(p) === renderedX
+      <ul>
+        {dictHits.length ? (
+          <li key="d">
+            <ul>
+              {dictHits.map((h) => (
+                <li>
+                  {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
+                  {renderSenses(h.word, tags)[h.sense]}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ) : (
+          <></>
+        )}
+        {conjHits.length ? (
+          <li key="c">
+            <ul>
+              {conjHits.map((foundConj) => (
+                <li>
+                  {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
+                  {(function () {
+                    const key = clozeToKey(foundConj);
+                    const x = conjHits.find((dec) => clozeToKey(dec) === key)?.selectedDeconj;
+                    if (!x) return "0";
+                    const renderedX = renderDeconjugation(x);
+                    const found = (foundConj.deconj as Ugh<typeof foundConj.deconj>).find(
+                      (p) => renderDeconjugation(p) === renderedX
+                    );
+                    if (found) {
+                      return renderDeconjugation(found);
+                    }
+                  })()}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ) : (
+          <></>
+        )}
+        {particles.length ? (
+          <li key="p">
+            <ul>
+              {particles.map((foundParticle) => {
+                return (
+                  <li>
+                    <>
+                      <sub>{foundParticle.cloze.left}</sub>
+                      {foundParticle.cloze.cloze}
+                      <sub>{foundParticle.cloze.right}</sub>:{" "}
+                      {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}{" "}
+                      {foundParticle.chino.length &&
+                        chinoMap.get(particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag || "")
+                          ?.fullLine}
+                    </>
+                  </li>
                 );
-                if (found) {
-                  return renderDeconjugation(found);
-                }
-              })()}
-            </li>
-          ))}
-        </ol>
-      </details>
-      <details open>
-        <summary>All particles found</summary>
-        <ol>
-          {particles.map((foundParticle) => {
-            return (
-              <li>
-                <>
-                  <sub>{foundParticle.cloze.left}</sub>
-                  {foundParticle.cloze.cloze}
-                  <sub>{foundParticle.cloze.right}</sub>:{" "}
-                  {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}{" "}
-                  {foundParticle.chino.length &&
-                    chinoMap.get(particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag || "")
-                      ?.fullLine}
-                </>
-              </li>
-            );
-          })}
-        </ol>
-      </details>
+              })}
+            </ul>
+          </li>
+        ) : (
+          <></>
+        )}
+      </ul>
     </div>
   );
 };
@@ -447,10 +458,26 @@ export default function HomePage({
       {s("わしじゃ！")}
       {s("今すぐワンコロ警察署に来てくれたまえ！")}
       {s("せっかちなんだから")}
-      <p>We're onto the second page! (Page 3 in the book.)</p>
+      <p>We're done with the first page! Page 3 in the book—</p>
       {s("フム、どなたからでしたか？")}
       {s("「マルチーズ署長です」")}
       {s("「ワンコロ警察署まで来てくれって」おしりたんていとブラウンは急いで出かける準備をしました")}
+      <p>Onto page 4!!</p>
+      {s("階段を降りると鈴が『ラッキーキャット』の前でバイクを磨いていました")}
+      {s("「おはよう。朝っぱらから仕事か？」と鈴が尋ねました")}
+      {s("「ワンコロ警察署に行くんです。朝ご飯もまだだったのに」")}
+      {s("ブラウンは欠伸をしながら答えました")}
+      {s("かっこいいバイクですね")}
+      {s("だろ？バイト掛け持ちして買ったんだ")}
+      <p>Page 5</p>
+      {s("おしりたんていとブラウンはワンコロ警察署に着きました")}
+      {s("「お待ちしておりました！」")}
+      {s("ガタイの良い刑事たちが出迎えます")}
+      {s("さぁ、こちらへ。マルチーズ署長がお待ちです")}
+      {s("３個のおしりを探せ")}
+      {s("市民の安全")}
+      <p>Picking up the pace, are we?</p>
+      {s("大きく立派な机の前にマルチーズ署長がちょこんと座っています")}
     </div>
   );
 }
