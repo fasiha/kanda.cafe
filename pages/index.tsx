@@ -128,6 +128,7 @@ interface SentenceDbEntry {
   dictHits: Hit[];
   conjHits: AnnotatedConjugatedPhrase[];
   particles: AnnotatedParticle[];
+  kanjidic: v1ResSentenceAnalyzed["kanjidic"];
 }
 type SentenceDb = Record<string, { data: SentenceDbEntry }>;
 
@@ -145,6 +146,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   const [dictHits, setDictHits] = useState<Hit[]>(sentencesDb[line]?.data?.dictHits || []);
   const [conjHits, setConjHits] = useState<AnnotatedConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
+  const [kanjidic, setKanjidic] = useState<undefined | SentenceDbEntry["kanjidic"]>(sentencesDb[line]?.data?.kanjidic);
   const idxsCovered = new Set(dictHits.flatMap((o) => range(o.startIdx, o.endIdx)));
 
   useEffect(() => {
@@ -157,14 +159,15 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         });
         const data = await req.json();
         setNlp(data);
+        setKanjidic(data.kanjidic);
         console.log("nlp", data);
       })();
     }
   }, []);
 
   useEffect(() => {
-    saveDb(line, { dictHits, conjHits, particles, furigana });
-  }, [dictHits, conjHits, particles, furigana]);
+    saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} });
+  }, [dictHits, conjHits, particles, furigana, kanjidic]);
 
   if (!nlp) {
     return <h2 lang={"ja"}>{furigana.length ? <Furigana vv={furigana} /> : line}</h2>;
@@ -178,33 +181,27 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
       <h2 lang={"ja"}>
         <Furigana vv={nlp.furigana} />
       </h2>
-      {furigana.length ? (
+      {furigana.length && kanjidic !== undefined ? (
         <button
           onClick={() => {
             setFurigana([]);
+            setKanjidic(undefined);
           }}
         >
-          Delete furigana
+          Delete furigana + kanji
         </button>
       ) : (
         <button
           onClick={() => {
             setFurigana(nlp.furigana);
+            setKanjidic(nlp.kanjidic);
           }}
         >
-          Approve furigana
+          Approve furigana + kanji
         </button>
       )}
       <details open>
         <summary>All annotations</summary>
-        {Object.keys(nlp.kanjidic).length ? (
-          <details open>
-            <summary>Kanji</summary>
-            <Kanjidic hits={nlp.kanjidic} />
-          </details>
-        ) : (
-          <></>
-        )}
         <details open>
           <summary>Selected dictionary entries</summary>
           <ul>
@@ -350,6 +347,14 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
             )}
           </ol>
         </details>
+        {Object.keys(nlp.kanjidic).length ? (
+          <details open>
+            <summary>Kanji</summary>
+            <Kanjidic hits={nlp.kanjidic} />
+          </details>
+        ) : (
+          <></>
+        )}
       </details>
     </div>
   );
@@ -362,7 +367,8 @@ interface RenderSentenceProps {
   chinoMap: Map<string, ChinoParticle>;
 }
 const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentenceProps) => {
-  const { furigana = [], dictHits = [], conjHits = [], particles = [] } = sentencesDb[line]?.data || {};
+  const { furigana = [], dictHits = [], conjHits = [], particles = [], kanjidic = {} } = sentencesDb[line]?.data || {};
+  const numKanji = Object.keys(kanjidic).length;
   const className = furigana.length === 0 ? "no-furigana" : "";
   return (
     <div>
@@ -428,6 +434,16 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
                 );
               })}
             </ul>
+          </li>
+        ) : (
+          <></>
+        )}
+        {numKanji ? (
+          <li key="k">
+            <details>
+              <summary>{numKanji} kanji</summary>
+              <Kanjidic hits={kanjidic} />
+            </details>
           </li>
         ) : (
           <></>
@@ -559,9 +575,14 @@ export const getStaticProps = async () => {
   return { props: { sentences: obj, particlesMarkdown, tags } };
 };
 
-async function saveDb(line: string, { dictHits, conjHits, particles, furigana }: SentenceDbEntry) {
-  const post = dictHits.length > 0 || conjHits.length > 0 || particles.length > 0 || furigana.length > 0;
-  const data: SentenceDbEntry = { dictHits, conjHits, particles, furigana };
+async function saveDb(line: string, { dictHits, conjHits, particles, furigana, kanjidic }: SentenceDbEntry) {
+  const post =
+    dictHits.length > 0 ||
+    conjHits.length > 0 ||
+    particles.length > 0 ||
+    furigana.length > 0 ||
+    Object.keys(kanjidic).length > 0;
+  const data: SentenceDbEntry = { dictHits, conjHits, particles, furigana, kanjidic };
   const res = await fetch(`${HELPER_URL}/sentence`, {
     method: post ? "POST" : "DELETE",
     headers: { "Content-Type": "application/json" },
