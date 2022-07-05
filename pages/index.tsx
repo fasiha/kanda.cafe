@@ -1,7 +1,7 @@
 import type { InferGetStaticPropsType, NextPage } from "next";
 import { readFile, readdir } from "fs/promises";
 import path from "path";
-import { createElement, useEffect, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import styles from "../styles/Home.module.css";
 
 import {
@@ -53,12 +53,18 @@ const Furigana = ({ vv }: FuriganaProps) => {
     )
   );
 };
+function furiganaToString(f: Furigana) {
+  return typeof f === "string" ? f : f.ruby;
+}
 
 function renderKanji(w: Word) {
   return w.kanji.map((k) => k.text).join("・");
 }
 function renderKana(w: Word) {
   return w.kana.map((k) => k.text).join("・");
+}
+function renderWord(w: Word) {
+  return `${renderKanji(w)} 「${renderKana(w)}」 (#${w.id})`;
 }
 function printXrefs(v: Xref[]) {
   return v.map((x) => x.join(",")).join(";");
@@ -190,6 +196,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   if (!nlp.tags || !nlp.clozes) {
     throw new Error("tags/clozes expected");
   }
+  const hitkey = (x: Hit) => `${x.startIdx}/${x.endIdx}/${x.word.id}/${x.sense}`;
   const { tags, clozes } = nlp;
   return (
     <div>
@@ -227,6 +234,14 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
               </li>
             ))}
           </ul>
+          <details>
+            <AddDictHit
+              furigana={furigana}
+              submit={(hit) => setDictHits(upsertIfNew(dictHits, hit, hitkey))}
+              sentencesDb={sentencesDb}
+            />
+            <summary>Add custom dictionary hit</summary>
+          </details>
         </details>
         <details open>
           <summary>All conjugated phrases found</summary>
@@ -320,8 +335,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
                                 const word = hit.word;
                                 return (
                                   <li>
-                                    <sup>{hit.search}</sup> {renderKanji(hit.word)} 「{renderKana(hit.word)}」 (#
-                                    {hit.word.id})
+                                    <sup>{hit.search}</sup> {renderWord(hit.word)}
                                     <ol>
                                       {renderSenses(hit.word, tags).map((s, senseIdx) => (
                                         <li>
@@ -338,7 +352,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
                                                       word: word,
                                                       sense: senseIdx,
                                                     },
-                                                    (x) => `${x.startIdx}/${x.endIdx}/${x.word.id}`
+                                                    hitkey
                                                   )
                                                 );
                                               }}
@@ -588,6 +602,8 @@ export default function HomePage({
       {s("さぁ、こちらへ。マルチーズ署長がお待ちです")}
       {s("３個のおしりを探せ")}
       {s("市民の安全")}
+      {s("安全ナンバーワン")}
+      {s("ワンダフルな町へ")}
       <p>Picking up the pace, are we?</p>
       {s("大きく立派な机の前にマルチーズ署長がちょこんと座っています")}
       {s("待っておったぞ！")}
@@ -603,6 +619,95 @@ export default function HomePage({
         form.
       </p>
       {s("メンバーは沢山いて、いくら捕まえても一向に減らないのです")}
+      {s("そしてついにこの町にもブラックシャドー団がやってきたようなのです")}
+      {s("ブラックシャドーメンドー")}
+      {s("そうなんじゃ！")}
+      {s("ブラックシャドー団と思われるやつを捕まえたんじゃよ！")}
+      {s("ワンコロ警察署で一番偉くて優秀なこのわしがな！")}
     </div>
+  );
+}
+
+function searchSentencesDbForJmdictId(db: SentenceDb, id: string) {
+  if (!id) {
+    return undefined;
+  }
+  for (const key in db) {
+    const hit = db[key].data.dictHits.find((h) => h.word.id === id);
+    if (hit) {
+      return hit?.word;
+    }
+  }
+}
+interface AddDictHit {
+  furigana: Furigana[][];
+  submit: (hit: Hit) => void;
+  sentencesDb: SentenceDb;
+}
+function AddDictHit({ furigana, submit, sentencesDb }: AddDictHit) {
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(furigana.length);
+  const [wordId, setWordId] = useState("");
+  const [sense, setSense] = useState(0);
+  const word = useMemo(() => (wordId ? searchSentencesDbForJmdictId(sentencesDb, wordId) : undefined), [wordId]);
+
+  return (
+    <p>
+      <>
+        Tag from{" "}
+        <select
+          value={start}
+          onChange={(e) => {
+            const x = +e.target.value;
+            setStart(x);
+            setEnd(Math.max(end, x + 1));
+          }}
+        >
+          {range(0, furigana.length).map((n) => (
+            <option key={n} value={n}>
+              {furigana[n].map(furiganaToString).join("")}…
+            </option>
+          ))}
+        </select>{" "}
+        to{" "}
+        <select value={end} onChange={(e) => setEnd(+e.target.value)}>
+          {range(start + 1, furigana.length + 1).map((n) => (
+            <option key={n} value={n}>
+              {furigana
+                .slice(start, n)
+                .flatMap((v) => v.map(furiganaToString))
+                .join("")}
+            </option>
+          ))}
+        </select>{" "}
+        <input type="text" placeholder="Jmdict word id" value={wordId} onChange={(e) => setWordId(e.target.value)} />{" "}
+        {wordId && word ? (
+          <>
+            {renderWord(word)}{" "}
+            <select value={sense} onChange={(e) => setSense(+e.target.value)}>
+              {word.sense.map((s, i) => (
+                <option key={i} value={i}>
+                  {s.gloss.map((g) => g.text).join("/")}
+                </option>
+              ))}
+            </select>{" "}
+          </>
+        ) : (
+          <>waiting for valid ID</>
+        )}{" "}
+        <button
+          disabled={!(word && sense >= 0)}
+          onClick={() => {
+            if (word && sense >= 0) {
+              const res = { startIdx: start, endIdx: end, word: word, sense };
+              console.log(res);
+              submit(res);
+            }
+          }}
+        >
+          Submit
+        </button>
+      </>
+    </p>
   );
 }
