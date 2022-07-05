@@ -397,7 +397,7 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
               {dictHits.map((h) => (
                 <li>
                   {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-                  {renderSenses(h.word, tags)[h.sense]}
+                  {renderSenses(h.word, tags)[h.sense]} <sub>{h.word.id}</sub>
                 </li>
               ))}
             </ul>
