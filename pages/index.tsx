@@ -233,7 +233,15 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
             {dictHits.map((h) => (
               <li>
                 {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-                {renderSenses(h.word, tags)[h.sense]}
+                {renderSenses(h.word, tags)[h.sense]}{" "}
+                <button
+                  onClick={() => {
+                    const removeKey = hitkey(h);
+                    setDictHits(dictHits.filter((h) => hitkey(h) !== removeKey));
+                  }}
+                >
+                  Remove
+                </button>
               </li>
             ))}
           </ul>
@@ -635,6 +643,17 @@ export default function HomePage({
       {s("器物損壊で現行犯逮捕じゃ")}
       {s("わしの丸いもの")}
       {s("マルチーズ署長は得意げな顔でえっへんと咳払いをしました")}
+      {s("ほとんど言いがかりなんじゃ")}
+      {s("丸い物の愛着がすごいんです")}
+      {s("見境がなくなるんです")}
+      {s("秘")}
+      {s("フム、なぜブラックシャドー団のメンバーだと分かったのですか？")}
+      {s("「これを見てくれい」")}
+      {s("マルチーズ署長は、おしりたんていに資料を渡しました")}
+      {s("資料はほかの町で捕らえられたブラックシャドー団のメンバーたちの写真でした")}
+      {s("おしりたんていは一目見て")}
+      {s("フム、そういうことですか")}
+      {s("何かわかったんですか？")}
     </div>
   );
 }
