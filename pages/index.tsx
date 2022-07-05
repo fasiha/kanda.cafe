@@ -32,6 +32,24 @@ export const getStaticProps = async () => {
   return { props: { sentences: obj, particlesMarkdown, tags } };
 };
 
+interface Hit {
+  startIdx: number;
+  endIdx: number;
+  word: Word;
+  sense: number;
+}
+
+type AnnotatedConjugatedPhrase = ConjugatedPhrase & { selectedDeconj: ConjugatedPhrase["deconj"][0] };
+type AnnotatedParticle = Particle & { chinoTag: string };
+interface SentenceDbEntry {
+  furigana: Furigana[][];
+  dictHits: Hit[];
+  conjHits: AnnotatedConjugatedPhrase[];
+  particles: AnnotatedParticle[];
+  kanjidic: v1ResSentenceAnalyzed["kanjidic"];
+}
+type SentenceDb = Record<string, { data: SentenceDbEntry }>;
+
 interface FuriganaProps {
   vv: Furigana[][];
 }
@@ -53,7 +71,10 @@ const Furigana = ({ vv }: FuriganaProps) => {
     )
   );
 };
-function furiganaToString(f: Furigana) {
+function furiganaToString(f: Furigana | Furigana[] | Furigana[][]): string {
+  if (Array.isArray(f)) {
+    return f.map(furiganaToString).join("");
+  }
   return typeof f === "string" ? f : f.ruby;
 }
 
@@ -133,25 +154,7 @@ function renderDeconjugation(d: AdjDeconjugated | Deconjugated) {
   return d.conjugation;
 }
 
-interface Hit {
-  startIdx: number;
-  endIdx: number;
-  word: Word;
-  sense: number;
-}
-
 const clozeToKey = (x: Pick<ConjugatedPhrase, "startIdx" | "endIdx">): string => `${x.startIdx}-${x.endIdx}`;
-
-type AnnotatedConjugatedPhrase = ConjugatedPhrase & { selectedDeconj: ConjugatedPhrase["deconj"][0] };
-type AnnotatedParticle = Particle & { chinoTag: string };
-interface SentenceDbEntry {
-  furigana: Furigana[][];
-  dictHits: Hit[];
-  conjHits: AnnotatedConjugatedPhrase[];
-  particles: AnnotatedParticle[];
-  kanjidic: v1ResSentenceAnalyzed["kanjidic"];
-}
-type SentenceDb = Record<string, { data: SentenceDbEntry }>;
 
 interface AnnotateProps {
   line: string;
@@ -236,7 +239,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
           </ul>
           <details>
             <AddDictHit
-              furigana={furigana}
+              furigana={nlp.furigana}
               submit={(hit) => setDictHits(upsertIfNew(dictHits, hit, hitkey))}
               sentencesDb={sentencesDb}
             />
@@ -624,6 +627,14 @@ export default function HomePage({
       {s("そうなんじゃ！")}
       {s("ブラックシャドー団と思われるやつを捕まえたんじゃよ！")}
       {s("ワンコロ警察署で一番偉くて優秀なこのわしがな！")}
+      {s("それは昨日のことじゃった")}
+      <p>(Above, we think じゃった is だ+past tense, with the usual way the chief replaces だ with じゃ.)</p>
+      {s("オレンジが")}
+      {s("丸いもの！")}
+      {s("ビシャー")}
+      {s("器物損壊で現行犯逮捕じゃ")}
+      {s("わしの丸いもの")}
+      {s("マルチーズ署長は得意げな顔でえっへんと咳払いをしました")}
     </div>
   );
 }
@@ -655,31 +666,13 @@ function AddDictHit({ furigana, submit, sentencesDb }: AddDictHit) {
     <p>
       <>
         Tag from{" "}
-        <select
-          value={start}
-          onChange={(e) => {
-            const x = +e.target.value;
-            setStart(x);
-            setEnd(Math.max(end, x + 1));
+        <MorphemesSelector
+          furigana={furigana}
+          submit={(s, e) => {
+            setStart(s);
+            setEnd(e);
           }}
-        >
-          {range(0, furigana.length).map((n) => (
-            <option key={n} value={n}>
-              {furigana[n].map(furiganaToString).join("")}…
-            </option>
-          ))}
-        </select>{" "}
-        to{" "}
-        <select value={end} onChange={(e) => setEnd(+e.target.value)}>
-          {range(start + 1, furigana.length + 1).map((n) => (
-            <option key={n} value={n}>
-              {furigana
-                .slice(start, n)
-                .flatMap((v) => v.map(furiganaToString))
-                .join("")}
-            </option>
-          ))}
-        </select>{" "}
+        />{" "}
         <input type="text" placeholder="Jmdict word id" value={wordId} onChange={(e) => setWordId(e.target.value)} />{" "}
         {wordId && word ? (
           <>
@@ -700,7 +693,6 @@ function AddDictHit({ furigana, submit, sentencesDb }: AddDictHit) {
           onClick={() => {
             if (word && sense >= 0) {
               const res = { startIdx: start, endIdx: end, word: word, sense };
-              console.log(res);
               submit(res);
             }
           }}
@@ -709,5 +701,44 @@ function AddDictHit({ furigana, submit, sentencesDb }: AddDictHit) {
         </button>
       </>
     </p>
+  );
+}
+
+interface MorphemesSelectorProps {
+  furigana: Furigana[][];
+  submit: (startIdx: number, endIdx: number) => void;
+}
+function MorphemesSelector({ furigana, submit }: MorphemesSelectorProps) {
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(furigana.length);
+  useEffect(() => submit(start, end), [start, end]);
+  return (
+    <>
+      <select
+        value={start}
+        onChange={(e) => {
+          const x = +e.target.value;
+          setStart(x);
+          setEnd(Math.max(end, x + 1));
+        }}
+      >
+        {range(0, furigana.length).map((n) => (
+          <option key={n} value={n}>
+            {furigana[n].map(furiganaToString).join("")}…
+          </option>
+        ))}
+      </select>{" "}
+      to{" "}
+      <select value={end} onChange={(e) => setEnd(+e.target.value)}>
+        {range(start + 1, furigana.length + 1).map((n) => (
+          <option key={n} value={n}>
+            {furigana
+              .slice(start, n)
+              .flatMap((v) => v.map(furiganaToString))
+              .join("")}
+          </option>
+        ))}
+      </select>
+    </>
   );
 }
