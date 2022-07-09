@@ -5,3 +5,7 @@
 .no-hit-picked {
   color: darkred;
 }
+
+.no-annotation-morpheme {
+  background-color: yellow;
+}

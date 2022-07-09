@@ -51,27 +51,36 @@ interface SentenceDbEntry {
 }
 type SentenceDb = Record<string, { data: SentenceDbEntry }>;
 
-interface FuriganaProps {
-  vv: Furigana[][];
-}
-const Furigana = ({ vv }: FuriganaProps) => {
-  return createElement(
-    "span",
-    null,
-    ...vv.flatMap((v) =>
-      v.map((f) =>
-        typeof f === "string" ? (
-          f
-        ) : (
-          <ruby>
-            {f.ruby}
-            <rt>{f.rt}</rt>
-          </ruby>
-        )
-      )
+const furiganaV = (v: Furigana[]) => {
+  return v.map((f) =>
+    typeof f === "string" ? (
+      f
+    ) : (
+      <ruby>
+        {f.ruby}
+        <rt>{f.rt}</rt>
+      </ruby>
     )
   );
 };
+interface FuriganaProps {
+  vv: Furigana[][];
+  covered?: Set<number>;
+}
+const Furigana = ({ vv, covered }: FuriganaProps) => {
+  return (
+    <>
+      {vv.map((v, i) =>
+        covered && !covered.has(i) ? (
+          <span className={styles["no-annotation-morpheme"]}>{furiganaV(v)}</span>
+        ) : (
+          furiganaV(v)
+        )
+      )}
+    </>
+  );
+};
+
 function furiganaToString(f: Furigana | Furigana[] | Furigana[][]): string {
   if (Array.isArray(f)) {
     return f.map(furiganaToString).join("");
@@ -206,6 +215,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   const idxsCoveredDict = coveredHelper(dictHits);
   const idxsCoveredConj = coveredHelper(conjHits);
   const idxsCoveredPart = coveredHelper(particles);
+  const allCovered = new Set([idxsCoveredDict, idxsCoveredConj, idxsCoveredPart].flatMap((v) => Array.from(v)));
   // Skip the first morpheme, so we close the dict hits for the tail but not head
   const idxsCoveredConjForDict = new Set(conjHits.flatMap((o) => range(o.startIdx + 1, o.endIdx)));
   const wordIdsPicked = new Set(dictHits.map((o) => o.word.id));
@@ -271,7 +281,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   return (
     <div>
       <h2 lang={"ja"}>
-        <Furigana vv={nlp.furigana} />
+        <Furigana vv={nlp.furigana} covered={allCovered} />
       </h2>
       {furigana.length && kanjidic !== undefined ? (
         <button
@@ -487,10 +497,29 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
   const { furigana = [], dictHits = [], conjHits = [], particles = [], kanjidic = {} } = sentencesDb[line]?.data || {};
   const numKanji = Object.keys(kanjidic).length;
   const className = furigana.length === 0 ? "no-furigana" : "";
+
+  const covered: Set<number> = new Set();
+  // Spell it out like this for speed (avoid conctenating arrays for no reason other than brevity)
+  for (const { startIdx, endIdx } of dictHits) {
+    for (const x of range(startIdx, endIdx)) {
+      covered.add(x);
+    }
+  }
+  for (const { startIdx, endIdx } of conjHits) {
+    for (const x of range(startIdx, endIdx)) {
+      covered.add(x);
+    }
+  }
+  for (const { startIdx, endIdx } of particles) {
+    for (const x of range(startIdx, endIdx)) {
+      covered.add(x);
+    }
+  }
+
   return (
     <div>
       <h2 className={styles[className]} lang={"ja"}>
-        {furigana.length ? <Furigana vv={furigana} /> : line}
+        {furigana.length ? <Furigana vv={furigana} covered={covered} /> : line}
       </h2>
       <ul>
         {dictHits.length ? (
