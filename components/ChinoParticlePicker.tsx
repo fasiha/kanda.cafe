@@ -39,7 +39,7 @@ export function setup(markdown: string) {
     }
     let description = line.trim().split(" ").slice(1).join(" ");
     if (description.startsWith("\\*")) {
-      description = description.slice(2);
+      description = description.slice(1);
     }
     const sectionNo = currIdx.join(".");
     const fullLine = `#${sectionNo}. ${description}`;

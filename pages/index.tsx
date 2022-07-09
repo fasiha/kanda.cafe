@@ -238,7 +238,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         continue;
       }
 
-      for (const hit of results.slice(0, 3)) {
+      for (const hit of results.slice(0, 5)) {
         const pickedHit = allDictHits.get(hit.wordId);
         if (pickedHit && hit.word) {
           if (hit.word.kana.find((o) => o.text === run) || hit.word.kanji.find((o) => o.text === run)) {
