@@ -160,10 +160,11 @@ const clozeToKey = (x: Pick<ConjugatedPhrase, "startIdx" | "endIdx">): string =>
 interface AnnotateProps {
   line: string;
   sentencesDb: SentenceDb;
+  allDictHits: Map<string, { sense: number; word: Word }>;
 }
 // This should not work in static-generated output, ideally it won't exist.
 const HELPER_URL = "http://localhost:3010";
-const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
+const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   // This component will be called for lines that haven't been annotated yet.
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
@@ -213,6 +214,60 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   const { tags, clozes } = nlp;
   const conjGroupedByStart = Array.from(groupBy(clozes.conjugatedPhrases, (o) => o.startIdx));
 
+  // Two requirements to be considered for autopick: (1) word used before and (2) literal exactly matches kana/kanji listing.
+  // So of course this will omit conjugated verbs, etc. Fine.
+  const dictHitsAutoPick: typeof dictHits = [];
+  for (const outer of nlp.hits) {
+    for (const inner of outer.results) {
+      const { run, endIdx, results } = inner;
+      // same as `open` below
+      const open = range(outer.startIdx, endIdx).some(
+        (x) => !(idxsCoveredConjForDict.has(x) || idxsCoveredPart.has(x) || idxsCoveredDict.has(x))
+      );
+      if (!open) {
+        continue;
+      }
+
+      for (const hit of results.slice(0, 3)) {
+        const pickedHit = allDictHits.get(hit.wordId);
+        if (pickedHit && hit.word) {
+          if (hit.word.kana.find((o) => o.text === run) || hit.word.kanji.find((o) => o.text === run)) {
+            dictHitsAutoPick.push({
+              startIdx: outer.startIdx,
+              endIdx: endIdx,
+              word: hit.word,
+              sense: pickedHit.sense,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  const renderHits = (v: Hit[]) =>
+    v.map((h, i) => {
+      const thisKey = hitkey(h);
+      const alreadyPicked = !!dictHits.find((h) => hitkey(h) === thisKey);
+      return (
+        <li key={i}>
+          {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
+          {renderSenses(h.word, tags)[h.sense]}{" "}
+          <button
+            onClick={() => {
+              if (alreadyPicked) {
+                const removeKey = hitkey(h);
+                setDictHits(dictHits.filter((h) => hitkey(h) !== removeKey));
+              } else {
+                setDictHits(upsertIfNew(dictHits, h, hitkey));
+              }
+            }}
+          >
+            {alreadyPicked ? "Remove" : "Add"}
+          </button>
+        </li>
+      );
+    });
+
   return (
     <div>
       <h2 lang={"ja"}>
@@ -241,22 +296,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         <summary>All annotations</summary>
         <details open>
           <summary>Selected dictionary entries</summary>
-          <ul>
-            {dictHits.map((h) => (
-              <li>
-                {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-                {renderSenses(h.word, tags)[h.sense]}{" "}
-                <button
-                  onClick={() => {
-                    const removeKey = hitkey(h);
-                    setDictHits(dictHits.filter((h) => hitkey(h) !== removeKey));
-                  }}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
+          <ul>{renderHits(dictHits)}</ul>
           <details>
             <AddDictHit
               furigana={nlp.furigana}
@@ -349,6 +389,12 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         </details>
         <details open>
           <summary>All dictionary entries matched</summary>
+          {dictHitsAutoPick.length ? (
+            <>
+              <p>Autopick</p>
+              <ul>{renderHits(dictHitsAutoPick)}</ul>
+            </>
+          ) : undefined}
           <ol>
             {nlp.hits.map(
               (scoreHits, outerIdx) =>
@@ -603,6 +649,15 @@ export default function HomePage({
   const chinoMap = setup(particlesMarkdown).nestedMap;
 
   const [annotating, setAnnotating] = useState(new Set<string>());
+  const allDictHits: Map<string, { sense: number; word: Word }> = useMemo(
+    () =>
+      new Map(
+        Object.values(sentencesDb).flatMap((o) =>
+          o.data.dictHits.map((o) => [o.word.id, { sense: o.sense, word: o.word }])
+        )
+      ),
+    [sentencesDb]
+  );
 
   const s = (s: string) =>
     !annotating.has(s) ? (
@@ -612,7 +667,7 @@ export default function HomePage({
       </>
     ) : (
       <>
-        <Annotate key={s} line={s} sentencesDb={sentencesDb} />
+        <Annotate key={s} line={s} sentencesDb={sentencesDb} allDictHits={allDictHits} />
         <button onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}>Done annotating</button>
       </>
     );
