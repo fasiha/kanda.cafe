@@ -173,13 +173,6 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
   const [kanjidic, setKanjidic] = useState<undefined | SentenceDbEntry["kanjidic"]>(sentencesDb[line]?.data?.kanjidic);
 
-  const coveredHelper = (v: { startIdx: number; endIdx: number }[]) =>
-    new Set(v.flatMap((o) => range(o.startIdx, o.endIdx)));
-  const idxsCoveredDict = coveredHelper(dictHits);
-  const idxsCoveredConj = coveredHelper(conjHits);
-  // Skip the first morpheme, so we close the dict hits for the tail but not head
-  const idxsCoveredConjForDict = new Set(conjHits.flatMap((o) => range(o.startIdx + 1, o.endIdx)));
-
   useEffect(() => {
     // Yes this will run twice in dev mode, see
     // https://reactjs.org/blog/2022/03/29/react-v18.html#new-strict-mode-behaviors
@@ -206,6 +199,15 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   if (!nlp.tags || !nlp.clozes) {
     throw new Error("tags/clozes expected");
   }
+
+  const coveredHelper = (v: { startIdx: number; endIdx: number }[]) =>
+    new Set(v.flatMap((o) => range(o.startIdx, o.endIdx)));
+  const idxsCoveredDict = coveredHelper(dictHits);
+  const idxsCoveredConj = coveredHelper(conjHits);
+  // Skip the first morpheme, so we close the dict hits for the tail but not head
+  const idxsCoveredConjForDict = new Set(conjHits.flatMap((o) => range(o.startIdx + 1, o.endIdx)));
+  const wordIdsPicked = new Set(dictHits.map((o) => o.word.id));
+
   const hitkey = (x: Hit) => `${x.startIdx}/${x.endIdx}/${x.word.id}/${x.sense}`;
   const { tags, clozes } = nlp;
   const conjGroupedByStart = Array.from(groupBy(clozes.conjugatedPhrases, (o) => o.startIdx));
@@ -352,57 +354,63 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
                 scoreHits.results.length > 0 && (
                   <li key={outerIdx} value={outerIdx}>
                     <ol>
-                      {scoreHits.results.map((res) => (
-                        <li>
-                          <details
-                            open={range(scoreHits.startIdx, res.endIdx).some(
-                              (x) => !(idxsCoveredConjForDict.has(x) || idxsCoveredDict.has(x))
-                            )}
-                          >
-                            <summary>{typeof res.run === "string" ? res.run : res.run.cloze}</summary>
-                            <ol>
-                              {res.results.map((hit, wordIdx) => {
-                                if (!hit.word) {
-                                  throw new Error("word expected");
-                                }
-                                const word = hit.word;
-                                return (
-                                  <li>
-                                    <sup>{hit.search}</sup> {renderWord(hit.word)}
-                                    <ol>
-                                      {renderSenses(hit.word, tags).map((s, senseIdx) => (
-                                        <li>
-                                          <>
-                                            {s}{" "}
-                                            <button
-                                              onClick={() => {
-                                                setDictHits(
-                                                  upsertIfNew(
-                                                    dictHits,
-                                                    {
-                                                      startIdx: scoreHits.startIdx,
-                                                      endIdx: res.endIdx,
-                                                      word: word,
-                                                      sense: senseIdx,
-                                                    },
-                                                    hitkey
-                                                  )
-                                                );
-                                              }}
-                                            >
-                                              Pick
-                                            </button>
-                                          </>
-                                        </li>
-                                      ))}
-                                    </ol>
-                                  </li>
-                                );
-                              })}
-                            </ol>
-                          </details>
-                        </li>
-                      ))}
+                      {scoreHits.results.map((res) => {
+                        const open = range(scoreHits.startIdx, res.endIdx).some(
+                          (x) => !(idxsCoveredConjForDict.has(x) || idxsCoveredDict.has(x))
+                        );
+                        const anyPickedClass = res.results.find((hit) => wordIdsPicked.has(hit.wordId))
+                          ? ""
+                          : styles["no-hit-picked"];
+                        return (
+                          <li>
+                            <details open={open}>
+                              <summary className={anyPickedClass}>
+                                {typeof res.run === "string" ? res.run : res.run.cloze}
+                              </summary>
+                              <ol>
+                                {res.results.map((hit) => {
+                                  if (!hit.word) {
+                                    throw new Error("word expected");
+                                  }
+                                  const word = hit.word;
+                                  return (
+                                    <li>
+                                      <sup>{hit.search}</sup> {renderWord(hit.word)}
+                                      <ol>
+                                        {renderSenses(hit.word, tags).map((s, senseIdx) => (
+                                          <li>
+                                            <>
+                                              {s}{" "}
+                                              <button
+                                                onClick={() => {
+                                                  setDictHits(
+                                                    upsertIfNew(
+                                                      dictHits,
+                                                      {
+                                                        startIdx: scoreHits.startIdx,
+                                                        endIdx: res.endIdx,
+                                                        word: word,
+                                                        sense: senseIdx,
+                                                      },
+                                                      hitkey
+                                                    )
+                                                  );
+                                                }}
+                                              >
+                                                Pick
+                                              </button>
+                                            </>
+                                          </li>
+                                        ))}
+                                      </ol>
+                                    </li>
+                                  );
+                                })}
+                              </ol>
+                            </details>
+                          </li>
+                        );
+                      })}
                     </ol>
                   </li>
                 )

@@ -1,3 +1,7 @@
 .no-furigana {
   color: darkred;
 }
+
+.no-hit-picked {
+  color: darkred;
+}
