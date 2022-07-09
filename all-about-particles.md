@@ -41,7 +41,7 @@
 			2. After after the -おう and -まい forms of the same verb
 		8. Used in the expression Vがはやいか: “as soon as, no sooner had”
 3. も (see also -ても #4 and でも #5)
-	1. Indicates the two words are equal and wait: “also, too”
+	1. Indicates the two words are equal in weight: “also, too”
 	2. Showing similar nouns in parallel construction: “and, as well as, both“
 	3. Indicates an addition: “as well as, in addition“
 	4. Shows emphasis or absence of doubt concerning a question of time, quantity, etc.: “any number of times, continually“
