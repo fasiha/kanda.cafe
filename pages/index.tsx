@@ -16,6 +16,7 @@ import {
 import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
 import { ChinoParticle, ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
 import { SimpleCharacter } from "curtiz-japanese-nlp/kanjidic";
+import { groupBy } from "../utils";
 
 export const getStaticProps = async () => {
   // might only print if you restart next dev server
@@ -171,7 +172,11 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   const [conjHits, setConjHits] = useState<AnnotatedConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
   const [kanjidic, setKanjidic] = useState<undefined | SentenceDbEntry["kanjidic"]>(sentencesDb[line]?.data?.kanjidic);
-  const idxsCovered = new Set(dictHits.flatMap((o) => range(o.startIdx, o.endIdx)));
+
+  const coveredHelper = (v: { startIdx: number; endIdx: number }[]) =>
+    new Set(v.flatMap((o) => range(o.startIdx, o.endIdx)));
+  const idxsCoveredDict = coveredHelper(dictHits);
+  const idxsCoveredConj = coveredHelper(conjHits);
 
   useEffect(() => {
     // Yes this will run twice in dev mode, see
@@ -201,6 +206,8 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
   }
   const hitkey = (x: Hit) => `${x.startIdx}/${x.endIdx}/${x.word.id}/${x.sense}`;
   const { tags, clozes } = nlp;
+  const conjGroupedByStart = Array.from(groupBy(clozes.conjugatedPhrases, (o) => o.startIdx));
+
   return (
     <div>
       <h2 lang={"ja"}>
@@ -257,43 +264,52 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
         <details open>
           <summary>All conjugated phrases found</summary>
           <ol>
-            {clozes.conjugatedPhrases.map((foundConj) => (
+            {conjGroupedByStart.map(([startIdx, conjugatedPhrases]) => (
               <li>
-                {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
-                {
-                  <select
-                    value={(function () {
-                      const key = clozeToKey(foundConj);
-                      const x = conjHits.find((dec) => clozeToKey(dec) === key)?.selectedDeconj;
-                      if (!x) return "0";
-                      const renderedX = renderDeconjugation(x);
-                      return foundConj.deconj.findIndex((p) => renderDeconjugation(p) === renderedX) + 1;
-                    })()}
-                    onChange={(e) => {
-                      const idx = +e.target.value;
-                      const phraseKey = clozeToKey(foundConj);
-                      setConjHits(
-                        idx
-                          ? upsertIfNew(
-                              conjHits,
-                              { ...foundConj, selectedDeconj: foundConj.deconj[idx - 1] },
-                              clozeToKey
-                            )
-                          : conjHits.filter((p) => clozeToKey(p) !== phraseKey)
-                      );
-                    }}
-                  >
-                    <option value="0">Pick one of {foundConj.deconj.length}</option>
-                    {foundConj.deconj.map((dec, idx) => {
-                      const readable = renderDeconjugation(dec);
-                      return (
-                        <option key={idx + 1} value={idx + 1}>
-                          {readable}
-                        </option>
-                      );
-                    })}
-                  </select>
-                }
+                <details open={!idxsCoveredConj.has(startIdx)}>
+                  <summary>{conjugatedPhrases[0].morphemes[0].literal[0]}…</summary>
+                  <ol>
+                    {conjugatedPhrases.map((foundConj) => (
+                      <li>
+                        {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
+                        {
+                          <select
+                            value={(function () {
+                              const key = clozeToKey(foundConj);
+                              const x = conjHits.find((dec) => clozeToKey(dec) === key)?.selectedDeconj;
+                              if (!x) return "0";
+                              const renderedX = renderDeconjugation(x);
+                              return foundConj.deconj.findIndex((p) => renderDeconjugation(p) === renderedX) + 1;
+                            })()}
+                            onChange={(e) => {
+                              const idx = +e.target.value;
+                              const phraseKey = clozeToKey(foundConj);
+                              setConjHits(
+                                idx
+                                  ? upsertIfNew(
+                                      conjHits,
+                                      { ...foundConj, selectedDeconj: foundConj.deconj[idx - 1] },
+                                      clozeToKey
+                                    )
+                                  : conjHits.filter((p) => clozeToKey(p) !== phraseKey)
+                              );
+                            }}
+                          >
+                            <option value="0">Pick one of {foundConj.deconj.length}</option>
+                            {foundConj.deconj.map((dec, idx) => {
+                              const readable = renderDeconjugation(dec);
+                              return (
+                                <option key={idx + 1} value={idx + 1}>
+                                  {readable}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        }
+                      </li>
+                    ))}
+                  </ol>
+                </details>
               </li>
             ))}
           </ol>
@@ -334,9 +350,9 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
                 scoreHits.results.length > 0 && (
                   <li key={outerIdx} value={outerIdx}>
                     <ol>
-                      {scoreHits.results.map((res, innerIdx) => (
+                      {scoreHits.results.map((res) => (
                         <li>
-                          <details open={range(scoreHits.startIdx, res.endIdx).some((x) => !idxsCovered.has(x))}>
+                          <details open={range(scoreHits.startIdx, res.endIdx).some((x) => !idxsCoveredDict.has(x))}>
                             <summary>{typeof res.run === "string" ? res.run : res.run.cloze}</summary>
                             <ol>
                               {res.results.map((hit, wordIdx) => {
