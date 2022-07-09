@@ -204,6 +204,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
     new Set(v.flatMap((o) => range(o.startIdx, o.endIdx)));
   const idxsCoveredDict = coveredHelper(dictHits);
   const idxsCoveredConj = coveredHelper(conjHits);
+  const idxsCoveredPart = coveredHelper(particles);
   // Skip the first morpheme, so we close the dict hits for the tail but not head
   const idxsCoveredConjForDict = new Set(conjHits.flatMap((o) => range(o.startIdx + 1, o.endIdx)));
   const wordIdsPicked = new Set(dictHits.map((o) => o.word.id));
@@ -356,7 +357,7 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
                     <ol>
                       {scoreHits.results.map((res) => {
                         const open = range(scoreHits.startIdx, res.endIdx).some(
-                          (x) => !(idxsCoveredConjForDict.has(x) || idxsCoveredDict.has(x))
+                          (x) => !(idxsCoveredConjForDict.has(x) || idxsCoveredPart.has(x) || idxsCoveredDict.has(x))
                         );
                         const anyPickedClass = res.results.find((hit) => wordIdsPicked.has(hit.wordId))
                           ? ""
