@@ -177,6 +177,8 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
     new Set(v.flatMap((o) => range(o.startIdx, o.endIdx)));
   const idxsCoveredDict = coveredHelper(dictHits);
   const idxsCoveredConj = coveredHelper(conjHits);
+  // Skip the first morpheme, so we close the dict hits for the tail but not head
+  const idxsCoveredConjForDict = new Set(conjHits.flatMap((o) => range(o.startIdx + 1, o.endIdx)));
 
   useEffect(() => {
     // Yes this will run twice in dev mode, see
@@ -352,7 +354,11 @@ const Annotate = ({ line, sentencesDb }: AnnotateProps) => {
                     <ol>
                       {scoreHits.results.map((res) => (
                         <li>
-                          <details open={range(scoreHits.startIdx, res.endIdx).some((x) => !idxsCoveredDict.has(x))}>
+                          <details
+                            open={range(scoreHits.startIdx, res.endIdx).some(
+                              (x) => !(idxsCoveredConjForDict.has(x) || idxsCoveredDict.has(x))
+                            )}
+                          >
                             <summary>{typeof res.run === "string" ? res.run : res.run.cloze}</summary>
                             <ol>
                               {res.results.map((hit, wordIdx) => {
@@ -679,6 +685,7 @@ export default function HomePage({
       {s("話が早いわい！")}
       <p>The above is an idiom: "easy to get to the point" (page 68 in Akiyama and Akiyama)</p>
       {s("これがそやつのつけていたペンダントじゃ")}
+      {s("ブラックシャドー団はこのペンダントをつけているのか")}
       <p>We've finished page 12!</p>
     </div>
   );
