@@ -60,9 +60,9 @@
 	5. Used with two or more announce which servers examples of a larger list: “either… Or (and others of a similar nature)”
 	6. Indicates one possibility: “… Or something”
 6. と
-	1. Follows nouns; indicates such meanings as “and“ and “with“ and sets off names
+	1. Follows nouns; indicates such meanings as “and“ and “with” and sets off names
 		1. Joins nouns, usually two or three (but not phrases and clauses): “and” (contrast with や #8.1)
-		2. Indicates a comparison or contrast: “and “or (one of choices asked for) “or”
+		2. Indicates a comparison or contrast: “and” or (when a choice is asked for) “or”
 		3. “together, with“
 		4. \*Indicates a change or result (commonly used in the phrase となる) (に #13.8 is also used in this pattern; to is more formal and is commonly used in writing)
 		5. \*Following an expression of quantity, reinforces the negative idea of the sentence: “(not) as much as“
@@ -76,7 +76,7 @@
 		2. Indicates the inevitability of a second action following the one proceeding: "when, as"
 		3. Indicates a hypothetical condition: “if, unless" (ば #34.1 and たら #35.1 have much the same meaning; compare also ば #34.2)
 		4. Indicates that something has been learned as a result of a certain action: "when, after, as a result of"  (たら #35.4 can also be used with this meaning)
-		5. Used with two verbs (either two different verbs ending in -よう/-おう, or the same for a repeated, the first ending in -よう/-おう, the second in the negative -まい); indicates a lack of concern over which of the two events occurs: "weather… Or (not)"
+		5. Used with two verbs (either two different verbs ending in -よう/-おう, or the same for a repeated, the first ending in -よう/-おう, the second in the negative -まい); indicates a lack of concern over which of the two events occurs: "whether … or (not)"
 7. とは
 	1. Indicates a word or phrase being defined, or for which of definition is being asked
 	2. \*Used between two clauses that are opposed to the meaning; the first clause represents a concession to the second (usually in the form とはいえ): “though, even though”
