@@ -66,17 +66,20 @@ const furiganaV = (v: Furigana[]) => {
 interface FuriganaProps {
   vv: Furigana[][];
   covered?: Set<number>;
+  onFocus?: (moprhemeIdx: number) => void;
 }
-const Furigana = ({ vv, covered }: FuriganaProps) => {
+const Furigana = ({ vv, covered, onFocus }: FuriganaProps) => {
   return (
     <>
-      {vv.map((v, i) =>
-        covered && !covered.has(i) ? (
-          <span className={styles["no-annotation-morpheme"]}>{furiganaV(v)}</span>
-        ) : (
-          furiganaV(v)
-        )
-      )}
+      {vv.map((v, i) => (
+        <span
+          onMouseLeave={onFocus ? () => onFocus(-1) : undefined}
+          onMouseEnter={onFocus ? () => onFocus(i) : undefined}
+          className={covered && !covered.has(i) ? styles["no-annotation-morpheme"] : undefined}
+        >
+          {furiganaV(v)}
+        </span>
+      ))}
     </>
   );
 };
@@ -165,6 +168,9 @@ function renderDeconjugation(d: AdjDeconjugated | Deconjugated) {
 }
 
 const clozeToKey = (x: Pick<ConjugatedPhrase, "startIdx" | "endIdx">): string => `${x.startIdx}-${x.endIdx}`;
+function isFocused(h: { startIdx: number; endIdx: number }, idx: number): boolean {
+  return idx >= h.startIdx && idx < h.endIdx;
+}
 
 interface AnnotateProps {
   line: string;
@@ -182,6 +188,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   const [conjHits, setConjHits] = useState<AnnotatedConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
   const [kanjidic, setKanjidic] = useState<undefined | SentenceDbEntry["kanjidic"]>(sentencesDb[line]?.data?.kanjidic);
+  const [focusedMorphemeIdx, setFocusedMorphemeIdx] = useState(-1);
 
   useEffect(() => {
     // Yes this will run twice in dev mode, see
@@ -256,10 +263,11 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
 
   const renderHits = (v: Hit[]) =>
     v.map((h, i) => {
+      const thisFocused = isFocused(h, focusedMorphemeIdx);
       const thisKey = hitkey(h);
       const alreadyPicked = !!dictHits.find((h) => hitkey(h) === thisKey);
       return (
-        <li key={i}>
+        <li key={i} className={thisFocused ? styles["focused-morpheme"] : undefined}>
           {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
           {renderSenses(h.word, tags)[h.sense]}{" "}
           <button
@@ -281,7 +289,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   return (
     <div>
       <h2 lang={"ja"}>
-        <Furigana vv={nlp.furigana} covered={allCovered} />
+        <Furigana vv={nlp.furigana} covered={allCovered} onFocus={(i) => setFocusedMorphemeIdx(i)} />
       </h2>
       {furigana.length && kanjidic !== undefined ? (
         <button
@@ -494,6 +502,8 @@ interface RenderSentenceProps {
   chinoMap: Map<string, ChinoParticle>;
 }
 const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentenceProps) => {
+  const [focusedMorphemeIdx, setFocusedMorphemeIdx] = useState(-1);
+
   const { furigana = [], dictHits = [], conjHits = [], particles = [], kanjidic = {} } = sentencesDb[line]?.data || {};
   const numKanji = Object.keys(kanjidic).length;
   const className = furigana.length === 0 ? "no-furigana" : "";
@@ -519,14 +529,18 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
   return (
     <div>
       <h2 className={styles[className]} lang={"ja"}>
-        {furigana.length ? <Furigana vv={furigana} covered={covered} /> : line}
+        {furigana.length ? (
+          <Furigana vv={furigana} covered={covered} onFocus={(i) => setFocusedMorphemeIdx(i)} />
+        ) : (
+          line
+        )}
       </h2>
       <ul>
         {dictHits.length ? (
           <li key="d">
             <ul>
               {dictHits.map((h) => (
-                <li>
+                <li className={isFocused(h, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}>
                   {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
                   {renderSenses(h.word, tags)[h.sense]} <sub>{h.word.id}</sub>
                 </li>
@@ -540,7 +554,7 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
           <li key="c">
             <ul>
               {conjHits.map((foundConj) => (
-                <li>
+                <li className={isFocused(foundConj, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}>
                   {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
                   {(function () {
                     const key = clozeToKey(foundConj);
@@ -566,7 +580,7 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
             <ul>
               {particles.map((foundParticle) => {
                 return (
-                  <li>
+                  <li className={isFocused(foundParticle, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}>
                     <>
                       <sub>{foundParticle.cloze.left}</sub>
                       {foundParticle.cloze.cloze}

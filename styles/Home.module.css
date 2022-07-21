@@ -9,3 +9,7 @@
 .no-annotation-morpheme {
   background-color: yellow;
 }
+
+.focused-morpheme {
+  background-color: pink;
+}
