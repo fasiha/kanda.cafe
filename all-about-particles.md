@@ -111,7 +111,7 @@
 	2. Indicates a means or implement: "by, with"
 	3. Indicates materials used: "of come from, with"
 	4. Indicates the greatest (largest, smallest, least, oldest, newest, etc.)
-	5. Indicates amount and scope: “within the space (time) of,  in, for”
+	5. Indicates amount and scope: “within the space (time) of, in, for”
 	6. Indicates the mode or condition of the agent of an action (not to be confused with the subject)
 	7. Indicates time or age: "when, at the age of"
 	8. Indicates the reason for something: "because of"
@@ -122,7 +122,7 @@
 	2. Indicates location of an action: "in, at"
 		1. Used to with certain "non-action" verbs, which implies that the subject is permanently located in the place of action
 		2. Use with verbs that indicate an actual has taken (or is to take) place and the resulting condition is (or will be) static.
-	3. Indicates time: "add, on, in; every, per"
+	3. Indicates time: "at, on, in; every, per"
 		1. Indicates the specific time at which something takes place
 		2. Indicates the interval of time during which something takes place
 	4. Indicates movement from a larger to a smaller place (e.g., from a train platform into a train, or from the lay world to a religious organization): “in, into” (contrast with o #18.6)
