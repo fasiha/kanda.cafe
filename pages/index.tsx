@@ -178,7 +178,6 @@ interface AnnotateProps {
   allDictHits: Map<string, { sense: number; word: Word }>;
 }
 // This should not work in static-generated output, ideally it won't exist.
-const HELPER_URL = "http://localhost:3010";
 const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   // This component will be called for lines that haven't been annotated yet.
 
@@ -189,13 +188,14 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
   const [kanjidic, setKanjidic] = useState<undefined | SentenceDbEntry["kanjidic"]>(sentencesDb[line]?.data?.kanjidic);
   const [focusedMorphemeIdx, setFocusedMorphemeIdx] = useState(-1);
+  const [helper_url] = useState(() => `http://${window.location.hostname}:3010`);
 
   useEffect(() => {
     // Yes this will run twice in dev mode, see
     // https://reactjs.org/blog/2022/03/29/react-v18.html#new-strict-mode-behaviors
     if (!nlp) {
       (async function parse() {
-        const req = await fetch(`${HELPER_URL}/sentence/${line}`, {
+        const req = await fetch(`${helper_url}/sentence/${line}`, {
           headers: { Accept: "application/json" },
         });
         const data = await req.json();
@@ -207,7 +207,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   }, []);
 
   useEffect(() => {
-    saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} });
+    saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} }, helper_url);
   }, [dictHits, conjHits, particles, furigana, kanjidic]);
 
   if (!nlp) {
@@ -658,7 +658,11 @@ function renderKanjidicRoot(k: SimpleCharacter) {
   return ret;
 }
 
-async function saveDb(line: string, { dictHits, conjHits, particles, furigana, kanjidic }: SentenceDbEntry) {
+async function saveDb(
+  line: string,
+  { dictHits, conjHits, particles, furigana, kanjidic }: SentenceDbEntry,
+  helper_url: string
+) {
   const post =
     dictHits.length > 0 ||
     conjHits.length > 0 ||
@@ -666,7 +670,7 @@ async function saveDb(line: string, { dictHits, conjHits, particles, furigana, k
     furigana.length > 0 ||
     Object.keys(kanjidic).length > 0;
   const data: SentenceDbEntry = { dictHits, conjHits, particles, furigana, kanjidic };
-  const res = await fetch(`${HELPER_URL}/sentence`, {
+  const res = await fetch(`${helper_url}/sentence`, {
     method: post ? "POST" : "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
