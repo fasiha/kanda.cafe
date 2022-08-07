@@ -201,6 +201,10 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         const data = await req.json();
         setNlp(data);
         setKanjidic(data.kanjidic);
+
+        setFurigana(data.furigana);
+        setKanjidic(data.kanjidic);
+
         console.log("nlp", data);
       })();
     }
