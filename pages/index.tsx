@@ -211,7 +211,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   }, []);
 
   useEffect(() => {
-    saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} }, helper_url);
+    saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} }, helper_url, sentencesDb);
   }, [dictHits, conjHits, particles, furigana, kanjidic]);
 
   if (!nlp) {
@@ -665,7 +665,8 @@ function renderKanjidicRoot(k: SimpleCharacter) {
 async function saveDb(
   line: string,
   { dictHits, conjHits, particles, furigana, kanjidic }: SentenceDbEntry,
-  helper_url: string
+  helper_url: string,
+  sentencesDb?: SentenceDb
 ) {
   const post =
     dictHits.length > 0 ||
@@ -686,6 +687,10 @@ async function saveDb(
     console.error(`${res.status} ${res.statusText}`);
   } else {
     console.log("saved");
+  }
+  if (sentencesDb) {
+    // VERY evil: we shouldn't be messing with props to Homepage like this but we're already pushing the boundary of Next in this direction so...
+    sentencesDb[line] = { data };
   }
 }
 
