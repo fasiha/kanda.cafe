@@ -27,7 +27,7 @@
 		12. Indicates the object of adjectives of desire (ほしい and the -たい forms). Compare to the use of を (#18.5) with the -がる and -たい forms of verbs
 		13. Indicates the object of verbs and adjectives of emotion (すきだ, きらいだ, うれしい, かなしい, こわい, しんぱいする, etc.). Compare the use of を (#18.5) with the -がる and -たい forms of verbs
 		14. Indicates the object of adjectives of ability (じょうずな, へたな, とくいな, きような, etc.)
-	2. Use between closes (and sometimes the end of sentences), usually with the meaning “but”
+	2. Use between clauses (and sometimes the end of sentences), usually with the meaning “but”
 		1. Used between two clauses to indicate that they are opposed and meaning (see #2.2.3 below): “but, although”
 		2. Indicates that a given subject has two different qualities: “but, although“
 		3. Connects to clauses without any adversative implication (cf. #2.2.1 above): “and“
