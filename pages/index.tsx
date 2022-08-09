@@ -1,7 +1,7 @@
 import type { InferGetStaticPropsType, NextPage } from "next";
 import { readFile, readdir } from "fs/promises";
 import path from "path";
-import { createElement, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "../styles/Home.module.css";
 
 import {
@@ -114,8 +114,9 @@ function renderSenses(w: Word, tags: Record<string, string>): string[] {
     misc: "✋",
   };
   return w.sense.map(
-    (sense, n) =>
+    (sense) =>
       sense.gloss.map((gloss) => gloss.text).join("/") +
+      ` (${sense.partOfSpeech.map((p) => tags[p]).join(", ")})` +
       (sense.related.length ? ` (👉 ${printXrefs(sense.related)})` : "") +
       (sense.antonym.length ? ` (👈 ${printXrefs(sense.antonym)})` : "") +
       Object.entries(tagFields)
