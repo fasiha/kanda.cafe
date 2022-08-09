@@ -22,7 +22,6 @@ export const getStaticProps = async () => {
   // might only print if you restart next dev server
   const parentDir = path.join(process.cwd(), "data");
   const jsons = (await readdir(parentDir)).filter((f) => f.toLowerCase().endsWith(".json"));
-  console.log("ls", jsons);
   const sentences = await Promise.all(
     jsons.map((j) => readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x)))
   );
@@ -73,6 +72,7 @@ const Furigana = ({ vv, covered, onFocus }: FuriganaProps) => {
     <>
       {vv.map((v, i) => (
         <span
+          key={i}
           onMouseLeave={onFocus ? () => onFocus(-1) : undefined}
           onMouseEnter={onFocus ? () => onFocus(i) : undefined}
           className={covered && !covered.has(i) ? styles["no-annotation-morpheme"] : undefined}
@@ -208,11 +208,11 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         console.log("nlp", data);
       })();
     }
-  }, []);
+  }, [helper_url, line, nlp]);
 
   useEffect(() => {
     saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} }, helper_url, sentencesDb);
-  }, [dictHits, conjHits, particles, furigana, kanjidic]);
+  }, [dictHits, conjHits, particles, furigana, kanjidic, helper_url, line, sentencesDb]);
 
   if (!nlp) {
     return <h2 lang={"ja"}>{furigana.length ? <Furigana vv={furigana} /> : line}</h2>;
@@ -332,12 +332,12 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
           <summary>All conjugated phrases found</summary>
           <ol>
             {conjGroupedByStart.map(([startIdx, conjugatedPhrases]) => (
-              <li>
+              <li key={startIdx}>
                 <details open={!idxsCoveredConj.has(startIdx)}>
                   <summary>{conjugatedPhrases[0].morphemes[0].literal[0]}…</summary>
                   <ol>
-                    {conjugatedPhrases.map((foundConj) => (
-                      <li>
+                    {conjugatedPhrases.map((foundConj, i) => (
+                      <li key={i}>
                         {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
                         {
                           <select
@@ -384,9 +384,9 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         <details open>
           <summary>All particles found</summary>
           <ol>
-            {clozes.particles.map((foundParticle) => {
+            {clozes.particles.map((foundParticle, i) => {
               return (
-                <li>
+                <li key={i}>
                   <sub>{foundParticle.cloze.left}</sub>
                   {foundParticle.cloze.cloze}
                   <sub>{foundParticle.cloze.right}</sub>:{" "}
@@ -423,7 +423,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
                 scoreHits.results.length > 0 && (
                   <li key={outerIdx} value={outerIdx}>
                     <ol>
-                      {scoreHits.results.map((res) => {
+                      {scoreHits.results.map((res, i) => {
                         const open = range(scoreHits.startIdx, res.endIdx).some(
                           (x) => !(idxsCoveredConjForDict.has(x) || idxsCoveredPart.has(x) || idxsCoveredDict.has(x))
                         );
@@ -431,23 +431,23 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
                           ? ""
                           : styles["no-hit-picked"];
                         return (
-                          <li>
+                          <li key={i}>
                             <details open={open}>
                               <summary className={anyPickedClass}>
                                 {typeof res.run === "string" ? res.run : res.run.cloze}
                               </summary>
                               <ol>
-                                {res.results.map((hit) => {
+                                {res.results.map((hit, i) => {
                                   if (!hit.word) {
                                     throw new Error("word expected");
                                   }
                                   const word = hit.word;
                                   return (
-                                    <li>
+                                    <li key={i}>
                                       <sup>{hit.search}</sup> {renderWord(hit.word)}
                                       <ol>
                                         {renderSenses(hit.word, tags).map((s, senseIdx) => (
-                                          <li>
+                                          <li key={senseIdx}>
                                             <>
                                               {s}{" "}
                                               <button
@@ -543,8 +543,8 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
         {dictHits.length ? (
           <li key="d">
             <ul>
-              {dictHits.map((h) => (
-                <li className={isFocused(h, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}>
+              {dictHits.map((h, i) => (
+                <li key={i} className={isFocused(h, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}>
                   {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
                   {renderSenses(h.word, tags)[h.sense]} <sub>{h.word.id}</sub>
                 </li>
@@ -557,8 +557,11 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
         {conjHits.length ? (
           <li key="c">
             <ul>
-              {conjHits.map((foundConj) => (
-                <li className={isFocused(foundConj, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}>
+              {conjHits.map((foundConj, i) => (
+                <li
+                  key={i}
+                  className={isFocused(foundConj, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}
+                >
                   {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
                   {(function () {
                     const key = clozeToKey(foundConj);
@@ -582,9 +585,12 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
         {particles.length ? (
           <li key="p">
             <ul>
-              {particles.map((foundParticle) => {
+              {particles.map((foundParticle, i) => {
                 return (
-                  <li className={isFocused(foundParticle, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}>
+                  <li
+                    key={i}
+                    className={isFocused(foundParticle, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}
+                  >
                     <>
                       <sub>{foundParticle.cloze.left}</sub>
                       {foundParticle.cloze.cloze}
@@ -623,12 +629,12 @@ interface KanjidicProps {
 function Kanjidic({ hits }: KanjidicProps) {
   return (
     <ul>
-      {Object.values(hits).map((dic) => (
-        <li>
+      {Object.values(hits).map((dic, i) => (
+        <li key={i}>
           {renderKanjidicRoot(dic)}
           <ul>
-            {dic.dependencies.map((root) => (
-              <KanjidicChild root={root} />
+            {dic.dependencies.map((root, i) => (
+              <KanjidicChild key={i} root={root} />
             ))}
           </ul>
         </li>
@@ -647,8 +653,8 @@ function KanjidicChild({ root }: KanjidicChildProps) {
     <li>
       {renderKanjidicRoot(root.nodeMapped)}
       <ul>
-        {root.children.map((child) => (
-          <KanjidicChild root={child} />
+        {root.children.map((child, i) => (
+          <KanjidicChild root={child} key={i} />
         ))}
       </ul>
     </li>
