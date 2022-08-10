@@ -296,25 +296,6 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
       <h2 lang={"ja"}>
         <Furigana vv={nlp.furigana} covered={allCovered} onFocus={(i) => setFocusedMorphemeIdx(i)} />
       </h2>
-      {furigana.length && kanjidic !== undefined ? (
-        <button
-          onClick={() => {
-            setFurigana([]);
-            setKanjidic(undefined);
-          }}
-        >
-          Delete furigana + kanji
-        </button>
-      ) : (
-        <button
-          onClick={() => {
-            setFurigana(nlp.furigana);
-            setKanjidic(nlp.kanjidic);
-          }}
-        >
-          Approve furigana + kanji
-        </button>
-      )}
       <details open>
         <summary>All annotations</summary>
         <details open>
