@@ -12,6 +12,7 @@ import {
   Sense,
   ConjugatedPhrase,
   Particle,
+  Ruby,
 } from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
 import { ChinoParticle, ChinoParticlePicker, setup } from "../components/ChinoParticlePicker";
@@ -89,6 +90,9 @@ function furiganaToString(f: Furigana | Furigana[] | Furigana[][]): string {
     return f.map(furiganaToString).join("");
   }
   return typeof f === "string" ? f : f.ruby;
+}
+function furiganaToRt(f: Furigana): string {
+  return typeof f === "string" ? "" : f.rt;
 }
 
 function renderKanji(w: Word) {
@@ -203,13 +207,16 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         setNlp(data);
         setKanjidic(data.kanjidic);
 
-        setFurigana(data.furigana);
+        if (furigana.length === 0) {
+          // don't overwrite our edited custom furigana (私's わたくし vs わたし)!
+          setFurigana(data.furigana);
+        }
         setKanjidic(data.kanjidic);
 
         console.log("nlp", data);
       })();
     }
-  }, [helper_url, line, nlp]);
+  }, [helper_url, line, nlp, furigana]);
 
   useEffect(() => {
     saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} }, helper_url, sentencesDb);
@@ -294,16 +301,54 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
   return (
     <div>
       <h2 lang={"ja"}>
-        <Furigana vv={nlp.furigana} covered={allCovered} onFocus={(i) => setFocusedMorphemeIdx(i)} />
+        <Furigana vv={furigana} covered={allCovered} onFocus={(i) => setFocusedMorphemeIdx(i)} />
       </h2>
       <details open>
         <summary>All annotations</summary>
+        <details>
+          <summary>Furigana editor</summary>
+          <ul>
+            {furigana.flatMap((fVec, outerIdx) =>
+              fVec.map((f, innerIdx) =>
+                typeof f === "string" ? (
+                  ""
+                ) : (
+                  <li key={`${outerIdx}/${innerIdx}`}>
+                    {f.ruby}:{" "}
+                    <input
+                      type="text"
+                      value={f.rt}
+                      onChange={(e) =>
+                        setFurigana(
+                          furigana.map((oldOuter, oldOuterIdx) =>
+                            oldOuterIdx === outerIdx
+                              ? oldOuter.map((oldInner, oldInnerIdx) =>
+                                  oldInnerIdx === innerIdx && typeof oldInner !== "string"
+                                    ? { ruby: oldInner.ruby, rt: e.target.value }
+                                    : oldInner
+                                )
+                              : oldOuter
+                          )
+                        )
+                      }
+                    />
+                    {furiganaToRt(nlp.furigana[outerIdx][innerIdx]) !== f.rt ? (
+                      <> (was: {furiganaToRt(nlp.furigana[outerIdx][innerIdx])})</>
+                    ) : (
+                      ""
+                    )}
+                  </li>
+                )
+              )
+            )}
+          </ul>
+        </details>
         <details open>
           <summary>Selected dictionary entries</summary>
           <ul>{renderHits(dictHits)}</ul>
           <details>
             <AddDictHit
-              furigana={nlp.furigana}
+              furigana={furigana}
               submit={(hit) => setDictHits(upsertIfNew(dictHits, hit, hitkey))}
               sentencesDb={sentencesDb}
             />
