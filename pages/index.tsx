@@ -590,18 +590,7 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
                   className={isFocused(foundConj, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}
                 >
                   {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
-                  {(function () {
-                    const key = clozeToKey(foundConj);
-                    const x = conjHits.find((dec) => clozeToKey(dec) === key)?.selectedDeconj;
-                    if (!x) return "0";
-                    const renderedX = renderDeconjugation(x);
-                    const found = (foundConj.deconj as Ugh<typeof foundConj.deconj>).find(
-                      (p) => renderDeconjugation(p) === renderedX
-                    );
-                    if (found) {
-                      return renderDeconjugation(found);
-                    }
-                  })()}
+                  {renderDeconjugation(foundConj.selectedDeconj)}
                 </li>
               ))}
             </ul>
