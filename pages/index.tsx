@@ -299,7 +299,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
     });
 
   return (
-    <div>
+    <div className={styles["annotator"]}>
       <h2 lang={"ja"}>
         <Furigana vv={furigana} covered={allCovered} onFocus={(i) => setFocusedMorphemeIdx(i)} />
       </h2>

@@ -21,6 +21,7 @@
   background-color: rgb(255, 224, 176);
   border-radius: 5px;
   padding-right: 1em;
+  line-height: normal;
 }
 
 .annotated-sentence .morpheme:hover .morpheme-annotations {
@@ -33,4 +34,10 @@
 
 button.edit-done-edit {
   margin-right: 1em;
+  vertical-align: super;
+}
+
+.annotator {
+  line-height: normal;
+  font-size: 16px;
 }
