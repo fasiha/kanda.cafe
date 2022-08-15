@@ -537,105 +537,91 @@ const RenderSentence = ({ line, sentencesDb, tags, chinoMap }: RenderSentencePro
 
   const { furigana = [], dictHits = [], conjHits = [], particles = [], kanjidic = {} } = sentencesDb[line]?.data || {};
   const numKanji = Object.keys(kanjidic).length;
-  const className = furigana.length === 0 ? "no-furigana" : "";
+  const className = furigana.length === 0 ? "no-furigana" : "annotated-sentence";
 
-  const covered: Set<number> = new Set();
+  const covered: Map<number, JSX.Element[]> = new Map();
   // Spell it out like this for speed (avoid conctenating arrays for no reason other than brevity)
-  for (const { startIdx, endIdx } of dictHits) {
-    for (const x of range(startIdx, endIdx)) {
-      covered.add(x);
+  for (const h of dictHits) {
+    for (const outerIdx of range(h.startIdx, h.endIdx)) {
+      if (!covered.has(outerIdx)) {
+        covered.set(outerIdx, []);
+      }
+      const v = covered.get(outerIdx) || []; // TypeScript pacification
+      v.push(
+        <li key={v.length}>
+          {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)} {renderSenses(h.word, tags)[h.sense]}{" "}
+          <sub>{h.word.id}</sub>
+        </li>
+      );
     }
   }
-  for (const { startIdx, endIdx } of conjHits) {
-    for (const x of range(startIdx, endIdx)) {
-      covered.add(x);
+  for (const foundConj of conjHits) {
+    for (const outerIdx of range(foundConj.startIdx, foundConj.endIdx)) {
+      if (!covered.has(outerIdx)) {
+        covered.set(outerIdx, []);
+      }
+      const v = covered.get(outerIdx) || []; // TypeScript pacification
+      v.push(
+        <li key={v.length}>
+          {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
+          {renderDeconjugation(foundConj.selectedDeconj)}
+        </li>
+      );
     }
   }
-  for (const { startIdx, endIdx } of particles) {
-    for (const x of range(startIdx, endIdx)) {
-      covered.add(x);
+  for (const foundParticle of particles) {
+    for (const outerIdx of range(foundParticle.startIdx, foundParticle.endIdx)) {
+      if (!covered.has(outerIdx)) {
+        covered.set(outerIdx, []);
+      }
+      const v = covered.get(outerIdx) || []; // TypeScript pacification
+      v.push(
+        <li key={v.length}>
+          <>
+            <sub>{foundParticle.cloze.left}</sub>
+            {foundParticle.cloze.cloze}
+            <sub>{foundParticle.cloze.right}</sub>:{" "}
+            {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}{" "}
+            {foundParticle.chino.length &&
+              chinoMap.get(particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag || "")
+                ?.fullLine}
+          </>
+        </li>
+      );
     }
   }
 
   return (
-    <div>
-      <h2 className={styles[className]} lang={"ja"}>
-        {furigana.length ? (
-          <Furigana vv={furigana} covered={covered} onFocus={(i) => setFocusedMorphemeIdx(i)} />
-        ) : (
-          line
-        )}
-      </h2>
-      <ul>
-        {dictHits.length ? (
-          <li key="d">
-            <ul>
-              {dictHits.map((h, i) => (
-                <li key={i} className={isFocused(h, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}>
-                  {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-                  {renderSenses(h.word, tags)[h.sense]} <sub>{h.word.id}</sub>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ) : (
-          <></>
-        )}
-        {conjHits.length ? (
-          <li key="c">
-            <ul>
-              {conjHits.map((foundConj, i) => (
-                <li
-                  key={i}
-                  className={isFocused(foundConj, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}
-                >
-                  {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
-                  {renderDeconjugation(foundConj.selectedDeconj)}
-                </li>
-              ))}
-            </ul>
-          </li>
-        ) : (
-          <></>
-        )}
-        {particles.length ? (
-          <li key="p">
-            <ul>
-              {particles.map((foundParticle, i) => {
-                return (
-                  <li
-                    key={i}
-                    className={isFocused(foundParticle, focusedMorphemeIdx) ? styles["focused-morpheme"] : undefined}
-                  >
-                    <>
-                      <sub>{foundParticle.cloze.left}</sub>
-                      {foundParticle.cloze.cloze}
-                      <sub>{foundParticle.cloze.right}</sub>:{" "}
-                      {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}{" "}
-                      {foundParticle.chino.length &&
-                        chinoMap.get(particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag || "")
-                          ?.fullLine}
-                    </>
-                  </li>
-                );
-              })}
-            </ul>
-          </li>
-        ) : (
-          <></>
-        )}
-        {numKanji ? (
-          <li key="k">
-            <details>
-              <summary>{numKanji} kanji</summary>
-              <Kanjidic hits={kanjidic} />
-            </details>
-          </li>
-        ) : (
-          <></>
-        )}
-      </ul>
-    </div>
+    <>
+      <span className={styles[className]} lang={"ja"}>
+        {furigana.length
+          ? furigana.map((fs, idx) => (
+              <span
+                className={[styles["morpheme"], covered.has(idx) ? styles["has-annotations"] : ""].join(" ")}
+                key={idx}
+              >
+                {fs.map((f, i) =>
+                  typeof f === "string" ? (
+                    f
+                  ) : (
+                    <ruby key={i}>
+                      {f.ruby}
+                      <rt>{f.rt}</rt>
+                    </ruby>
+                  )
+                )}
+                {covered.has(idx) ? (
+                  <span className={styles["morpheme-annotations"]}>
+                    <ul>{covered.get(idx)}</ul>
+                  </span>
+                ) : (
+                  ""
+                )}
+              </span>
+            ))
+          : line}
+      </span>
+    </>
   );
 };
 
@@ -741,94 +727,29 @@ export default function HomePage({
     !annotating.has(s) ? (
       <>
         <RenderSentence key={s} line={s} sentencesDb={sentencesDb} tags={tags} chinoMap={chinoMap} />
-        <button onClick={() => setAnnotating(new Set(annotating).add(s))}>Annotate above</button>
+        <button className={styles["edit-done-edit"]} onClick={() => setAnnotating(new Set(annotating).add(s))}>
+          📝
+        </button>
       </>
     ) : (
       <>
         <Annotate key={s} line={s} sentencesDb={sentencesDb} allDictHits={allDictHits} />
-        <button onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}>Done annotating</button>
+        <button
+          className={styles["edit-done-edit"]}
+          onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}
+        >
+          ✅
+        </button>
       </>
     );
   return (
     <div>
-      <p>Here's the first line of Oshiri Tantei #3.</p>
-      {s("ある日の朝早く、ジリリリンとおしりたんてい事務所の電話が鳴りました。")}
-      <p>And the second.</p>
-      {s("ブラウンは眠い目をこすりながら受話器を取りました")}
-      {s("わしじゃ！")}
-      {s("今すぐワンコロ警察署に来てくれたまえ！")}
-      {s("せっかちなんだから")}
-      <p>We're done with the first page! Page 3 in the book—</p>
-      {s("フム、どなたからでしたか？")}
-      {s("「マルチーズ署長です」")}
-      {s("「ワンコロ警察署まで来てくれって」おしりたんていとブラウンは急いで出かける準備をしました")}
-      <p>ポフ is SFX for his hat hitting his head.</p>
-      <p>Onto page 4!!</p>
-      {s("階段を降りると鈴が『ラッキーキャット』の前でバイクを磨いていました")}
-      {s("「おはよう。朝っぱらから仕事か？」と鈴が尋ねました")}
-      {s("「ワンコロ警察署に行くんです。朝ご飯もまだだったのに」")}
-      {s("ブラウンは欠伸をしながら答えました")}
-      {s("かっこいいバイクですね")}
-      {s("だろ？バイト掛け持ちして買ったんだ")}
-      <p>Page 5</p>
-      {s("おしりたんていとブラウンはワンコロ警察署に着きました")}
-      {s("「お待ちしておりました！」")}
-      {s("ガタイの良い刑事たちが出迎えます")}
-      {s("さぁ、こちらへ。マルチーズ署長がお待ちです")}
-      {s("３個のおしりを探せ")}
-      {s("市民の安全")}
-      {s("安全ナンバーワン")}
-      {s("ワンダフルな町へ")}
-      <p>Picking up the pace, are we?</p>
-      {s("大きく立派な机の前にマルチーズ署長がちょこんと座っています")}
-      {s("待っておったぞ！")}
-      {s("おしりたんていくん。ブラウンも久しぶりじゃな")}
-      {s("「フム、早速お電話をお伺いしましょうか」")}
-      {s("犬")}
-      {s("スタッ")}
-      {s("ブラックシャドー団という面倒な奴らが現われてな。")}
-      {s("諸君、詳しい説明を頼む")}
-      {s("ブラックシャドー団は集団で盗みを行う窃盗団でお金持ちの家を狙い、家にある物全て根こそぎ盗んでいきます。")}
-      <p>
-        Learner's note: see Kamiya <em>Handbook of Japanese Verbs</em>, page 54, for more on the "Vconj + Vconj + masu"
-        form.
-      </p>
-      {s("メンバーは沢山いて、いくら捕まえても一向に減らないのです")}
-      {s("そしてついにこの町にもブラックシャドー団がやってきたようなのです")}
-      {s("ブラックシャドーメンドー")}
-      {s("そうなんじゃ！")}
-      {s("ブラックシャドー団と思われるやつを捕まえたんじゃよ！")}
-      {s("ワンコロ警察署で一番偉くて優秀なこのわしがな！")}
-      {s("それは昨日のことじゃった")}
-      <p>(Above, we think じゃった is だ+past tense, with the usual way the chief replaces だ with じゃ.)</p>
-      {s("オレンジが")}
-      {s("丸いもの！")}
-      {s("ビシャー")}
-      {s("器物損壊で現行犯逮捕じゃ")}
-      {s("わしの丸いもの")}
-      {s("マルチーズ署長は得意げな顔でえっへんと咳払いをしました")}
-      {s("ほとんど言いがかりなんじゃ")}
-      {s("丸い物の愛着がすごいんです")}
-      {s("見境がなくなるんです")}
-      {s("秘")}
-      {s("フム、なぜブラックシャドー団のメンバーだと分かったのですか？")}
-      {s("「これを見てくれい」")}
-      {s("マルチーズ署長は、おしりたんていに資料を渡しました")}
-      {s("資料はほかの町で捕らえられたブラックシャドー団のメンバーたちの写真でした")}
-      {s("おしりたんていは一目見て")}
-      {s("フム、そういうことですか")}
-      {s("何かわかったんですか？")}
-      {s("フム、メンバーたちには一つ共通しているものがあります。それはなんでしょう？")}
-      {s("ブラックシャドー団逮捕者リスト")}
-      {s("そうです。ペンダントですね。")}
-      {s("「ペンダントはブラックシャドー団のメンバーということを示しているのではないですか？」")}
-      {s("マルチーズ署長が捕まえた方もペンダントをつけていたのですね")}
-      {s("さすがじゃ！")}
-      {s("話が早いわい！")}
-      <p>The above is an idiom: "easy to get to the point" (page 68 in Akiyama and Akiyama)</p>
-      {s("これがそやつのつけていたペンダントじゃ")}
-      {s("ブラックシャドー団はこのペンダントをつけているのか")}
-      <p>We've finished page 12!</p>
+      <blockquote>Let&apos;s do Oshiri Tantei #1!</blockquote>
+      <div>
+        {s("紫婦人の暗号事件")}
+        {s("賑やかな街の真ん中に、１軒の探偵事務所がありました")}
+        {s("そこにはおしりたんていと助手のブラウンが住んでいました")}
+      </div>
     </div>
   );
 }
