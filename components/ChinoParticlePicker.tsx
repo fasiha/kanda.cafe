@@ -5,18 +5,22 @@ export interface ChinoParticle {
   fullLine: string;
   sectionNo: string;
   description: string;
+  particle: string;
 }
-export type ChinoMap = Map<number, ChinoParticle[]>;
-let chinoMap: ChinoMap = new Map();
+type TopToChinosMap = Map<number, ChinoParticle[]>;
+let topToChinos: TopToChinosMap = new Map();
+type NumberToChinoMap = Map<string, ChinoParticle>;
+let sectionToChino: NumberToChinoMap = new Map();
 
 export function setup(markdown: string) {
   const lines = markdown.split("\n").filter((s) => s.match(/^\t*[0-9]/));
 
-  const flat: { fullLine: string; sectionNo: string; description: string }[] = [];
+  const flat: Pick<ChinoParticle, "description" | "fullLine" | "particle" | "sectionNo">[] = [];
   const nonleaf: Set<string> = new Set();
 
   let prevIndent = 0;
   let currIdx = [0];
+  let particle = "";
   for (const line of lines) {
     var currIndent = line.match(/^\t*/)?.[0].length;
     if (typeof currIndent !== "number") {
@@ -38,12 +42,12 @@ export function setup(markdown: string) {
       currIdx = currIdx.slice(0, currIndent).concat(currIdx[currIndent] + 1);
     }
     let description = line.trim().split(" ").slice(1).join(" ");
-    if (description.startsWith("\\*")) {
-      description = description.slice(1);
+    if (currIdx.length === 1) {
+      particle = description;
     }
     const sectionNo = currIdx.join(".");
     const fullLine = `#${sectionNo}. ${description}`;
-    flat.push({ fullLine, sectionNo, description });
+    flat.push({ fullLine, sectionNo, description, particle });
 
     prevIndent = currIndent;
   }
@@ -56,33 +60,49 @@ export function setup(markdown: string) {
     groups.set(prefix, (groups.get(prefix) || []).concat(x));
   }
 
-  chinoMap = groups;
-  const nestedMap = new Map(
-    [...chinoMap.values()].flatMap((x) => x.map((x) => [x.sectionNo, x] as [string, ChinoParticle]))
+  topToChinos = groups;
+  sectionToChino = new Map(
+    [...topToChinos.values()].flatMap((x) => x.map((x) => [x.sectionNo, x] as [string, ChinoParticle]))
   );
-
-  return { chinoMap, nestedMap };
 }
 
+const NO_SELECTION = "";
 interface ChinoParticlePickerProps {
-  particleNumbers: number[];
+  candidateNumbers?: number[];
+  candidate?: string;
   onChange: (x: string) => void;
   currentValue?: string;
-  data?: typeof chinoMap;
 }
-export function ChinoParticlePicker({ particleNumbers, currentValue, onChange, data }: ChinoParticlePickerProps) {
-  data = data || chinoMap;
+/**
+ * You must provide either `candidateNumbers` (from Curtiz Japanese NLP) or `candidate` (manual particle picking)
+ */
+export function ChinoParticlePicker({
+  candidateNumbers: particleNumbers = [],
+  candidate = "",
+  currentValue,
+  onChange,
+}: ChinoParticlePickerProps) {
+  // same as backend
+  const candidateAlt = candidate === "ん" ? "の" : "";
+
+  const candidateParticles: ChinoParticle[] = particleNumbers.length
+    ? particleNumbers.flatMap((n) => topToChinos?.get(n) || [])
+    : Array.from(topToChinos.values())
+        .filter((v) => v[0].particle.includes(candidate) || (candidateAlt && v[0].particle.includes(candidateAlt)))
+        .flat();
 
   return (
-    <select className={styles.select} onChange={(e) => onChange(e.target.value)} value={currentValue || ""}>
-      <option value="">Pick as detailed a particle as possible</option>
-      {particleNumbers
-        .flatMap((n) => data?.get(n) || [])
-        .map((p) => (
-          <option key={p.sectionNo} value={p.sectionNo}>
-            {p.sectionNo}. {p.leaf && `✅ `} {p.description}
-          </option>
-        ))}
+    <select className={styles.select} onChange={(e) => onChange(e.target.value)} value={currentValue || NO_SELECTION}>
+      <option value={NO_SELECTION}>Pick as detailed a particle as possible</option>
+      {candidateParticles.map((p) => (
+        <option key={p.sectionNo} value={p.sectionNo}>
+          {p.sectionNo}. {p.leaf && `✅ `} {p.description}
+        </option>
+      ))}
     </select>
   );
+}
+
+export function convertSectionToChinoLine(section: string): string {
+  return sectionToChino.get(section)?.fullLine || "";
 }

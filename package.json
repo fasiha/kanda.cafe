@@ -11,6 +11,7 @@
     "server-start": "node server/server.js"
   },
   "dependencies": {
+    "curtiz-utils": "github:fasiha/curtiz-utils",
     "kamiya-codec": "^4.5.1",
     "next": "12.1.6",
     "react": "18.2.0",
