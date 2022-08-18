@@ -712,55 +712,6 @@ async function saveDb(
 // https://stackoverflow.com/questions/70843127#comment128628953_70843200
 type Ugh<T> = (T extends (infer X)[] ? X : never)[];
 
-export default function HomePage({
-  sentences: sentencesDb,
-  particlesMarkdown,
-  tags,
-}: InferGetStaticPropsType<typeof getStaticProps>) {
-  setup(particlesMarkdown);
-
-  const [annotating, setAnnotating] = useState(new Set<string>());
-  const allDictHits: Map<string, { sense: number; word: Word }> = useMemo(
-    () =>
-      new Map(
-        Object.values(sentencesDb).flatMap((o) =>
-          o.data.dictHits.map((o) => [o.word.id, { sense: o.sense, word: o.word }])
-        )
-      ),
-    [sentencesDb]
-  );
-
-  const s = (s: string) =>
-    !annotating.has(s) ? (
-      <>
-        <RenderSentence key={s} line={s} sentencesDb={sentencesDb} tags={tags} />
-        <button className={styles["edit-done-edit"]} onClick={() => setAnnotating(new Set(annotating).add(s))}>
-          📝
-        </button>
-      </>
-    ) : (
-      <>
-        <Annotate key={s} line={s} sentencesDb={sentencesDb} allDictHits={allDictHits} />
-        <button
-          className={styles["edit-done-edit"]}
-          onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}
-        >
-          ✅
-        </button>
-      </>
-    );
-  return (
-    <div>
-      <blockquote>Let&apos;s do Oshiri Tantei #1!</blockquote>
-      <div>
-        {s("紫婦人の暗号事件")}
-        {s("賑やかな街の真ん中に、１軒の探偵事務所がありました")}
-        {s("そこにはおしりたんていと助手のブラウンが住んでいました")}
-      </div>
-    </div>
-  );
-}
-
 function searchSentencesDbForJmdictId(db: SentenceDb, id: string) {
   if (!id) {
     return undefined;
@@ -917,5 +868,54 @@ function MorphemesSelector({ furigana, submit }: MorphemesSelectorProps) {
         ))}
       </select>
     </>
+  );
+}
+
+export default function HomePage({
+  sentences: sentencesDb,
+  particlesMarkdown,
+  tags,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  setup(particlesMarkdown);
+
+  const [annotating, setAnnotating] = useState(new Set<string>());
+  const allDictHits: Map<string, { sense: number; word: Word }> = useMemo(
+    () =>
+      new Map(
+        Object.values(sentencesDb).flatMap((o) =>
+          o.data.dictHits.map((o) => [o.word.id, { sense: o.sense, word: o.word }])
+        )
+      ),
+    [sentencesDb]
+  );
+
+  const s = (s: string) =>
+    !annotating.has(s) ? (
+      <>
+        <RenderSentence key={s} line={s} sentencesDb={sentencesDb} tags={tags} />
+        <button className={styles["edit-done-edit"]} onClick={() => setAnnotating(new Set(annotating).add(s))}>
+          📝
+        </button>
+      </>
+    ) : (
+      <>
+        <Annotate key={s} line={s} sentencesDb={sentencesDb} allDictHits={allDictHits} />
+        <button
+          className={styles["edit-done-edit"]}
+          onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}
+        >
+          ✅
+        </button>
+      </>
+    );
+  return (
+    <div>
+      <blockquote>Let&apos;s do Oshiri Tantei #1!</blockquote>
+      <div>
+        {s("紫婦人の暗号事件")}
+        {s("賑やかな街の真ん中に、１軒の探偵事務所がありました")}
+        {s("そこにはおしりたんていと助手のブラウンが住んでいました")}
+      </div>
+    </div>
   );
 }
