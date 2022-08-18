@@ -29,29 +29,29 @@
 		14. Indicates the object of adjectives of ability (じょうずな, へたな, とくいな, きような, etc.)
 	2. Use between clauses (and sometimes the end of sentences), usually with the meaning “but”
 		1. Used between two clauses to indicate that they are opposed and meaning (see #2.2.3 below): “but, although”
-		2. Indicates that a given subject has two different qualities: “but, although“
-		3. Connects to clauses without any adversative implication (cf. #2.2.1 above): “and“
+		2. Indicates that a given subject has two different qualities: “but, although”
+		3. Connects to clauses without any adversative implication (cf. #2.2.1 above): “and”
 		4. Indicates a preliminary remark
 		5. Used at the end of the sentence
 			1. Implies an unstated meaning that is in contrast to one of the stated: “well, yes, but”
 			2. Softens of refusal: “I am sorry but…”
-		6. When you said the end of a sentence are closed and proceeded by to ii, indicates that the speaker wants the events to come out as stated. Context determines whether or not the wishes actually realizable: “it would be nice if; it would have been nice if“
-		7. Used idiomatically after contrasted verbs or adjectives “whether or not“
+		6. When you said the end of a sentence are closed and proceeded by to ii, indicates that the speaker wants the events to come out as stated. Context determines whether or not the wishes actually realizable: “it would be nice if; it would have been nice if”
+		7. Used idiomatically after contrasted verbs or adjectives “whether or not”
 			1. After the -おう forms of contrast verbs or adjectives
 			2. After after the -おう and -まい forms of the same verb
 		8. Used in the expression Vがはやいか: “as soon as, no sooner had”
 3. も (see also -ても #4 and でも #5)
 	1. Indicates the two words are equal in weight: “also, too”
-	2. Showing similar nouns in parallel construction: “and, as well as, both“
-	3. Indicates an addition: “as well as, in addition“
-	4. Shows emphasis or absence of doubt concerning a question of time, quantity, etc.: “any number of times, continually“
-	5. Indicates total negation concerning the question of quality or quantity (accompanied by a negative verb): “no, nothing“
+	2. Showing similar nouns in parallel construction: “and, as well as, both”
+	3. Indicates an addition: “as well as, in addition”
+	4. Shows emphasis or absence of doubt concerning a question of time, quantity, etc.: “any number of times, continually”
+	5. Indicates total negation concerning the question of quality or quantity (accompanied by a negative verb): “no, nothing”
 	6. Term for size the extent of a number: “all of, as much (many) as”
 	7. Indicates approximation (by showing an approximate upper limit) regarding number or quantity: “around, up to”
 4. ても・でも
-	1. “Even if, even though“
-	2. After verbs, used in conjunction with interrogatives for emphasis: “no matter where (who, what, etc.)“
-	3. Emphasizes an approximate limit: “at the most“
+	1. “Even if, even though”
+	2. After verbs, used in conjunction with interrogatives for emphasis: “no matter where (who, what, etc.)”
+	3. Emphasizes an approximate limit: “at the most”
 5. でも
 	1. Used of pronounced emphasize a hypothetical: “even, even if”
 	2. Used after nouns for emphasis: “even”
@@ -63,9 +63,9 @@
 	1. Follows nouns; indicates such meanings as “and“ and “with” and sets off names
 		1. Joins nouns, usually two or three (but not phrases and clauses): “and” (contrast with や #8.1)
 		2. Indicates a comparison or contrast: “and” or (when a choice is asked for) “or”
-		3. “together, with“
+		3. “together, with”
 		4. \*Indicates a change or result (commonly used in the phrase となる) (に #13.8 is also used in this pattern; to is more formal and is commonly used in writing)
-		5. \*Following an expression of quantity, reinforces the negative idea of the sentence: “(not) as much as“
+		5. \*Following an expression of quantity, reinforces the negative idea of the sentence: “(not) as much as”
 	2. Used after onomatopoeic adverbs, or follows a word, clause, or sentence and proceeds such a verbs as いう, きく, and 思う to indicate what someone said, asked, thought, etc.
 		1. Indicates what someone said, ordered, asked, etc.
 		2. Indicates what someone thinks or feels
