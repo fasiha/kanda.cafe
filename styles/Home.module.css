@@ -32,6 +32,10 @@
   border-bottom: 1px solid silver;
 }
 
+.morpheme:hover {
+  background-color: #ddd;
+}
+
 button.edit-done-edit {
   margin-right: 1em;
   vertical-align: super;
