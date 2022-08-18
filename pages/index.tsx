@@ -24,10 +24,12 @@ export const getStaticProps = async () => {
   // might only print if you restart next dev server
   const parentDir = path.join(process.cwd(), "data");
   const jsons = (await readdir(parentDir)).filter((f) => f.toLowerCase().endsWith(".json"));
-  const sentences = await Promise.all(
+  const sentences: { data: SentenceDbEntry; sentence: string }[] = await Promise.all(
     jsons.map((j) => readFile(path.join(parentDir, j), "utf8").then((x) => JSON.parse(x)))
   );
-  const obj: SentenceDb = Object.fromEntries(sentences.map((s) => [s.sentence, s])); // TODO validate
+  const obj: SentenceDb = Object.fromEntries(
+    sentences.map((s, idx) => [s.sentence, { ...s, hash: jsons[idx].split(".")[0] }])
+  ); // TODO validate
 
   const particlesMarkdown = await readFile("all-about-particles.md", "utf8");
   const tags: NonNullable<v1ResSentenceAnalyzed["tags"]> = JSON.parse(await readFile("tags.json", "utf8"));
@@ -50,7 +52,7 @@ interface SentenceDbEntry {
   particles: AnnotatedParticle[];
   kanjidic: v1ResSentenceAnalyzed["kanjidic"];
 }
-type SentenceDb = Record<string, { data: SentenceDbEntry }>;
+type SentenceDb = Record<string, { data: SentenceDbEntry; sentence: string; hash?: string }>;
 
 const furiganaV = (v: Furigana[]) => {
   return v.map((f, i) =>
@@ -703,7 +705,7 @@ async function saveDb(
   }
   if (sentencesDb) {
     // VERY evil: we shouldn't be messing with props to Homepage like this but we're already pushing the boundary of Next in this direction so...
-    sentencesDb[line] = { data };
+    sentencesDb[line] = { data, sentence: line };
   }
 }
 
