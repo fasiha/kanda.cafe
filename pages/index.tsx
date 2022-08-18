@@ -1,4 +1,4 @@
-import type { InferGetStaticPropsType, NextPage } from "next";
+import type { InferGetStaticPropsType } from "next";
 import { readFile, readdir } from "fs/promises";
 import path from "path";
 import { useEffect, useMemo, useState } from "react";
@@ -12,17 +12,10 @@ import {
   Sense,
   ConjugatedPhrase,
   Particle,
-  Ruby,
   Morpheme,
-  ContextCloze,
 } from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
-import {
-  ChinoParticle,
-  ChinoParticlePicker,
-  convertSectionToChinoLine,
-  setup,
-} from "../components/ChinoParticlePicker";
+import { ChinoParticlePicker, convertSectionToChinoLine, setup } from "../components/ChinoParticlePicker";
 import { SimpleCharacter } from "curtiz-japanese-nlp/kanjidic";
 import { groupBy } from "../utils";
 import { generateContextClozed } from "curtiz-utils";
@@ -60,11 +53,11 @@ interface SentenceDbEntry {
 type SentenceDb = Record<string, { data: SentenceDbEntry }>;
 
 const furiganaV = (v: Furigana[]) => {
-  return v.map((f) =>
+  return v.map((f, i) =>
     typeof f === "string" ? (
       f
     ) : (
-      <ruby>
+      <ruby key={i}>
         {f.ruby}
         <rt>{f.rt}</rt>
       </ruby>
