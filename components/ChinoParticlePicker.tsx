@@ -86,11 +86,17 @@ export function ChinoParticlePicker({
 }: ChinoParticlePickerProps) {
   // same as backend
   const candidateAlt = candidate === "ん" ? "の" : "";
+  const currentValueSection = currentValue?.split(".")[0];
 
   const candidateParticles: ChinoParticle[] = candidateNumbers.length
     ? candidateNumbers.flatMap((n) => topToChinos?.get(n) || [])
     : Array.from(topToChinos.values())
-        .filter((v) => v[0].particle.includes(candidate) || (candidateAlt && v[0].particle.includes(candidateAlt)))
+        .filter(
+          (v) =>
+            currentValueSection === v[0].sectionNo ||
+            v[0].particle.includes(candidate) ||
+            (candidateAlt && v[0].particle.includes(candidateAlt))
+        )
         .flat();
 
   return (
@@ -107,4 +113,7 @@ export function ChinoParticlePicker({
 
 export function convertSectionToChinoLine(section: string): string {
   return sectionToChino.get(section)?.fullLine || "";
+}
+export function convertSectionToParticle(section: string): string {
+  return sectionToChino.get(section)?.particle || "";
 }

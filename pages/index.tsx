@@ -15,7 +15,12 @@ import {
   Morpheme,
 } from "curtiz-japanese-nlp/interfaces";
 import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
-import { ChinoParticlePicker, convertSectionToChinoLine, setup } from "../components/ChinoParticlePicker";
+import {
+  ChinoParticlePicker,
+  convertSectionToChinoLine,
+  convertSectionToParticle,
+  setup,
+} from "../components/ChinoParticlePicker";
 import { SimpleCharacter } from "curtiz-japanese-nlp/kanjidic";
 import { groupBy } from "../utils";
 import { generateContextClozed } from "curtiz-utils";
@@ -45,6 +50,11 @@ interface Hit {
 
 type AnnotatedConjugatedPhrase = ConjugatedPhrase & { selectedDeconj: ConjugatedPhrase["deconj"][0] };
 type AnnotatedParticle = Particle & { chinoTag: string };
+
+function isAnnotatedParticle(p: Particle | AnnotatedParticle): p is AnnotatedParticle {
+  return "chinoTag" in p;
+}
+
 interface SentenceDbEntry {
   furigana: Furigana[][];
   dictHits: Hit[];
@@ -302,7 +312,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
     });
 
   // Since we can add particles manually, which the NLP server won't know about, make a list of all particles
-  const allParticles = clozes.particles;
+  const allParticles: (Particle | AnnotatedParticle)[] = clozes.particles;
   {
     const particleKey = (p: Particle) => `${p.startIdx}/${p.endIdx}/${p.cloze.cloze}`;
     const nlpKeys = new Set(allParticles.map(particleKey));
@@ -422,24 +432,26 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         <details open>
           <summary>All particles found</summary>
           <ol>
-            {allParticles.map((foundParticle, i) => {
+            {allParticles.map((particle, i) => {
               return (
                 <li key={i}>
-                  <sub>{foundParticle.cloze.left}</sub>
-                  {foundParticle.cloze.cloze}
-                  <sub>{foundParticle.cloze.right}</sub>:{" "}
-                  {foundParticle.chino.length
-                    ? foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")
-                    : "(manual particle)"}{" "}
+                  <sub>{particle.cloze.left}</sub>
+                  {particle.cloze.cloze}
+                  <sub>{particle.cloze.right}</sub>:{" "}
+                  {particle.chino.length
+                    ? particle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")
+                    : isAnnotatedParticle(particle)
+                    ? "(manual particle) " + convertSectionToParticle(particle.chinoTag)
+                    : "?"}{" "}
                   <ChinoParticlePicker
-                    candidateNumbers={foundParticle.chino.map(([i]) => i)}
-                    candidate={foundParticle.cloze.cloze}
-                    currentValue={particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag}
+                    candidateNumbers={particle.chino.map(([i]) => i)}
+                    candidate={particle.cloze.cloze}
+                    currentValue={particles.find((x) => clozeToKey(particle) === clozeToKey(x))?.chinoTag}
                     onChange={(e) =>
                       setParticles(
                         e
-                          ? upsertIfNew(particles, { ...foundParticle, chinoTag: e }, clozeToKey)
-                          : particles.filter((x) => clozeToKey(x) !== clozeToKey(foundParticle))
+                          ? upsertIfNew(particles, { ...particle, chinoTag: e }, clozeToKey)
+                          : particles.filter((x) => clozeToKey(x) !== clozeToKey(particle))
                       )
                     }
                   />
@@ -620,7 +632,7 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
             <sub>{foundParticle.cloze.right}</sub>:{" "}
             {foundParticle.chino.length
               ? foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")
-              : "(manual particle)"}{" "}
+              : "(manual particle) " + convertSectionToParticle(foundParticle.chinoTag)}{" "}
             {convertSectionToChinoLine(foundParticle.chinoTag)}
           </>
         </li>
@@ -658,7 +670,6 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
                 className={[styles["morpheme"], covered.has(idx) ? styles["has-annotations"] : ""].join(" ")}
                 onMouseEnter={() => {
                   setActiveAnnotationIds(mIdxToAnnotationIds.get(idx) || []);
-                  console.log("setting", mIdxToAnnotationIds.get(idx));
                 }}
                 onMouseLeave={() => setActiveAnnotationIds([])}
                 key={idx}
@@ -791,6 +802,7 @@ function AddParticle({ furigana, morphemes, submit }: AddParticle) {
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(furigana.length);
   const [chinoTag, setChinoTag] = useState("");
+  const [candidate, setCandidate] = useState(furiganaToString(furigana.slice(start, end)));
 
   return (
     <p>
@@ -801,15 +813,11 @@ function AddParticle({ furigana, morphemes, submit }: AddParticle) {
           submit={(s, e) => {
             setStart(s);
             setEnd(e);
+            setCandidate(furiganaToString(furigana.slice(s, e)));
           }}
         />{" "}
-        {
-          <ChinoParticlePicker
-            candidate={furiganaToString(furigana.slice(start, end))}
-            currentValue={chinoTag}
-            onChange={(e) => setChinoTag(e)}
-          />
-        }{" "}
+        <input type="text" placeholder="particle" value={candidate} onChange={(e) => setCandidate(e.target.value)} />{" "}
+        <ChinoParticlePicker candidate={candidate} currentValue={chinoTag} onChange={(e) => setChinoTag(e)} />{" "}
         <button
           disabled={!chinoTag}
           onClick={() => {
