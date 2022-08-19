@@ -24,6 +24,7 @@ import {
 import { SimpleCharacter } from "curtiz-japanese-nlp/kanjidic";
 import { groupBy } from "../utils";
 import { generateContextClozed } from "curtiz-utils";
+import { hidden } from "../hidden";
 
 export const getStaticProps = async () => {
   // might only print if you restart next dev server
@@ -974,14 +975,5 @@ export default function HomePage({
         </button>
       </>
     );
-  return (
-    <div>
-      <blockquote>Let&apos;s do Oshiri Tantei #1!</blockquote>
-      <div>
-        {s("紫婦人の暗号事件")}
-        {s("賑やかな街の真ん中に、１軒の探偵事務所がありました")}
-        {s("そこにはおしりたんていと助手のブラウンが住んでいました")}
-      </div>
-    </div>
-  );
+  return hidden(s);
 }

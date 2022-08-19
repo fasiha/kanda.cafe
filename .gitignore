@@ -34,3 +34,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 tsbuild
+
+# This is personal text not intended to be pushed to GitHub
+hidden.tsx
