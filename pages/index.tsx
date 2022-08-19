@@ -551,12 +551,12 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
 
   // maps morpheme to a list of `${c}${n}` where `c` is `p` for particle,
   // `d` for dict, and `c` for conjugation, and n is a number.
-  const annotationSiblings: Map<number, string[]> = new Map();
+  const mIdxToAnnotationIds: Map<number, string[]> = new Map();
 
   // Spell it out like this for speed (avoid conctenating arrays for no reason other than brevity)
   for (const [hidx, h] of dictHits.entries()) {
     for (const outerIdx of range(h.startIdx, h.endIdx)) {
-      annotationSiblings.set(outerIdx, (annotationSiblings.get(outerIdx) || []).concat("d" + hidx));
+      mIdxToAnnotationIds.set(outerIdx, (mIdxToAnnotationIds.get(outerIdx) || []).concat("d" + hidx));
 
       if (!covered.has(outerIdx)) {
         covered.set(outerIdx, []);
@@ -575,7 +575,7 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
   }
   for (const [cidx, foundConj] of conjHits.entries()) {
     for (const outerIdx of range(foundConj.startIdx, foundConj.endIdx)) {
-      annotationSiblings.set(outerIdx, (annotationSiblings.get(outerIdx) || []).concat("c" + cidx));
+      mIdxToAnnotationIds.set(outerIdx, (mIdxToAnnotationIds.get(outerIdx) || []).concat("c" + cidx));
 
       if (!covered.has(outerIdx)) {
         covered.set(outerIdx, []);
@@ -594,7 +594,7 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
   }
   for (const [pidx, foundParticle] of particles.entries()) {
     for (const outerIdx of range(foundParticle.startIdx, foundParticle.endIdx)) {
-      annotationSiblings.set(outerIdx, (annotationSiblings.get(outerIdx) || []).concat("p" + pidx));
+      mIdxToAnnotationIds.set(outerIdx, (mIdxToAnnotationIds.get(outerIdx) || []).concat("p" + pidx));
 
       if (!covered.has(outerIdx)) {
         covered.set(outerIdx, []);
@@ -619,7 +619,26 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
     }
   }
 
-  const [activeSiblingIds, setActiveSiblingIds] = useState<string[]>([]);
+  const [activeAnnotationIds, setActiveAnnotationIds] = useState<string[]>([]);
+
+  function mIdxToClass(idx: number): string {
+    const annots = mIdxToAnnotationIds.get(idx);
+    if (!annots) {
+      return "";
+    }
+    const [a1, a2, a3] = activeAnnotationIds as (string | undefined)[];
+    let ret = " ";
+    for (const a of annots) {
+      if (a === a1) {
+        ret += styles["sib1"] + " ";
+      } else if (a === a2) {
+        ret += styles["sib2"] + " ";
+      } else if (a === a3) {
+        ret += styles["sib3"] + " ";
+      }
+    }
+    return ret;
+  }
 
   return (
     <>
@@ -629,22 +648,13 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
               <span
                 className={[styles["morpheme"], covered.has(idx) ? styles["has-annotations"] : ""].join(" ")}
                 onMouseEnter={() => {
-                  setActiveSiblingIds(annotationSiblings.get(idx) || []);
-                  console.log("setting", annotationSiblings.get(idx));
+                  setActiveAnnotationIds(mIdxToAnnotationIds.get(idx) || []);
+                  console.log("setting", mIdxToAnnotationIds.get(idx));
                 }}
-                onMouseLeave={() => {
-                  setActiveSiblingIds([]);
-                }}
+                onMouseLeave={() => setActiveAnnotationIds([])}
                 key={idx}
               >
-                <span
-                  className={[
-                    styles["topdeck"],
-                    (annotationSiblings.get(idx) || []).includes(activeSiblingIds[0]) ? styles["sib1"] : "",
-                    (annotationSiblings.get(idx) || []).includes(activeSiblingIds[1]) ? styles["sib2"] : "",
-                    (annotationSiblings.get(idx) || []).includes(activeSiblingIds[2]) ? styles["sib3"] : "",
-                  ].join(" ")}
-                >
+                <span className={styles["topdeck"] + mIdxToClass(idx)}>
                   {fs.map((f, i) =>
                     typeof f === "string" ? (
                       f
