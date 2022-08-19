@@ -546,44 +546,65 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
   const { furigana = [], dictHits = [], conjHits = [], particles = [], kanjidic = {} } = sentencesDb[line]?.data || {};
   const className = furigana.length === 0 ? "no-furigana" : "annotated-sentence";
 
+  // maps morpheme to a list of `<LI>` tags
   const covered: Map<number, JSX.Element[]> = new Map();
+
+  // maps morpheme to a list of `${c}${n}` where `c` is `p` for particle,
+  // `d` for dict, and `c` for conjugation, and n is a number.
+  const annotationSiblings: Map<number, string[]> = new Map();
+
   // Spell it out like this for speed (avoid conctenating arrays for no reason other than brevity)
-  for (const h of dictHits) {
+  for (const [hidx, h] of dictHits.entries()) {
     for (const outerIdx of range(h.startIdx, h.endIdx)) {
+      annotationSiblings.set(outerIdx, (annotationSiblings.get(outerIdx) || []).concat("d" + hidx));
+
       if (!covered.has(outerIdx)) {
         covered.set(outerIdx, []);
       }
       const v = covered.get(outerIdx) || []; // TypeScript pacification
       v.push(
-        <li key={v.length}>
+        <li
+          key={v.length}
+          className={[styles["annotate-bullet"], v.length < 3 ? styles[`sib${v.length + 1}`] : ""].join(" ")}
+        >
           {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)} {renderSenses(h.word, tags)[h.sense]}{" "}
           <sub>{h.word.id}</sub>
         </li>
       );
     }
   }
-  for (const foundConj of conjHits) {
+  for (const [cidx, foundConj] of conjHits.entries()) {
     for (const outerIdx of range(foundConj.startIdx, foundConj.endIdx)) {
+      annotationSiblings.set(outerIdx, (annotationSiblings.get(outerIdx) || []).concat("c" + cidx));
+
       if (!covered.has(outerIdx)) {
         covered.set(outerIdx, []);
       }
       const v = covered.get(outerIdx) || []; // TypeScript pacification
       v.push(
-        <li key={v.length}>
+        <li
+          key={v.length}
+          className={[styles["annotate-bullet"], v.length < 3 ? styles[`sib${v.length + 1}`] : ""].join(" ")}
+        >
           {foundConj.cloze.cloze} = <Furigana vv={[foundConj.lemmas[0]]} />{" "}
           {renderDeconjugation(foundConj.selectedDeconj)}
         </li>
       );
     }
   }
-  for (const foundParticle of particles) {
+  for (const [pidx, foundParticle] of particles.entries()) {
     for (const outerIdx of range(foundParticle.startIdx, foundParticle.endIdx)) {
+      annotationSiblings.set(outerIdx, (annotationSiblings.get(outerIdx) || []).concat("p" + pidx));
+
       if (!covered.has(outerIdx)) {
         covered.set(outerIdx, []);
       }
       const v = covered.get(outerIdx) || []; // TypeScript pacification
       v.push(
-        <li key={v.length}>
+        <li
+          key={v.length}
+          className={[styles["annotate-bullet"], v.length < 3 ? styles[`sib${v.length + 1}`] : ""].join(" ")}
+        >
           <>
             <sub>{foundParticle.cloze.left}</sub>
             {foundParticle.cloze.cloze}
@@ -598,6 +619,8 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
     }
   }
 
+  const [activeSiblingIds, setActiveSiblingIds] = useState<string[]>([]);
+
   return (
     <>
       <span className={styles[className]} lang={"ja"}>
@@ -605,18 +628,34 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
           ? furigana.map((fs, idx) => (
               <span
                 className={[styles["morpheme"], covered.has(idx) ? styles["has-annotations"] : ""].join(" ")}
+                onMouseEnter={() => {
+                  setActiveSiblingIds(annotationSiblings.get(idx) || []);
+                  console.log("setting", annotationSiblings.get(idx));
+                }}
+                onMouseLeave={() => {
+                  setActiveSiblingIds([]);
+                }}
                 key={idx}
               >
-                {fs.map((f, i) =>
-                  typeof f === "string" ? (
-                    f
-                  ) : (
-                    <ruby key={i}>
-                      {f.ruby}
-                      <rt>{f.rt}</rt>
-                    </ruby>
-                  )
-                )}
+                <span
+                  className={[
+                    styles["topdeck"],
+                    (annotationSiblings.get(idx) || []).includes(activeSiblingIds[0]) ? styles["sib1"] : "",
+                    (annotationSiblings.get(idx) || []).includes(activeSiblingIds[1]) ? styles["sib2"] : "",
+                    (annotationSiblings.get(idx) || []).includes(activeSiblingIds[2]) ? styles["sib3"] : "",
+                  ].join(" ")}
+                >
+                  {fs.map((f, i) =>
+                    typeof f === "string" ? (
+                      f
+                    ) : (
+                      <ruby key={i}>
+                        {f.ruby}
+                        <rt>{f.rt}</rt>
+                      </ruby>
+                    )
+                  )}
+                </span>
                 {covered.has(idx) ? (
                   <span className={styles["morpheme-annotations"]}>
                     <ul>{covered.get(idx)}</ul>

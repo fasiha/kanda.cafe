@@ -18,7 +18,7 @@
   position: absolute;
   display: block;
   visibility: hidden;
-  background-color: rgb(255, 224, 176);
+  background-color: var(--orangeSosekiProject);
   border-radius: 5px;
   padding-right: 1em;
   line-height: normal;
@@ -29,11 +29,13 @@
 }
 
 .morpheme.has-annotations {
-  border-bottom: 1px solid silver;
-}
+  --orangeSosekiProject: rgb(255, 224, 176);
+  --lilacSosekiProject: rgb(204, 177, 255);
+  --tanSosekiProject: rgb(225, 178, 121);
+  --greenSosekiProject: rgb(188, 235, 141);
+  --blueSosekiProject: rgb(185, 213, 255);
 
-.morpheme:hover {
-  background-color: #ddd;
+  border-bottom: 1px solid var(--orangeSosekiProject);
 }
 
 button.edit-done-edit {
@@ -44,4 +46,26 @@ button.edit-done-edit {
 .annotator {
   line-height: normal;
   font-size: 16px;
+}
+
+.morpheme .topdeck.sib3 {
+  background-color: var(--lilacSosekiProject);
+}
+
+.morpheme .topdeck.sib2 {
+  border-top: 2px solid var(--blueSosekiProject);
+}
+
+.morpheme .topdeck.sib1 {
+  border-bottom: 3px solid var(--orangeSosekiProject);
+}
+
+li.annotate-bullet.sib3 {
+  background-color: var(--lilacSosekiProject);
+}
+li.annotate-bullet.sib2 {
+  background-color: var(--blueSosekiProject);
+}
+li.annotate-bullet.sib1 {
+  background-color: var(--orangeSosekiProject);
 }
