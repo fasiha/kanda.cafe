@@ -41,7 +41,7 @@ export function setup(markdown: string) {
       // dedent
       currIdx = currIdx.slice(0, currIndent).concat(currIdx[currIndent] + 1);
     }
-    let description = line.trim().split(" ").slice(1).join(" ");
+    let description = line.trim().split(" ").slice(1).join(" ").replace(/^\\/, "");
     if (currIdx.length === 1) {
       particle = description;
     }
@@ -74,10 +74,12 @@ interface ChinoParticlePickerProps {
   currentValue?: string;
 }
 /**
- * You must provide either `candidateNumbers` (from Curtiz Japanese NLP) or `candidate` (manual particle picking)
+ * You must provide either `candidateNumbers` (from Curtiz Japanese NLP) or `candidate` (manual particle picking).
+ *
+ * If you provide both, `candidateNumbers` will take priority.
  */
 export function ChinoParticlePicker({
-  candidateNumbers: particleNumbers = [],
+  candidateNumbers = [],
   candidate = "",
   currentValue,
   onChange,
@@ -85,8 +87,8 @@ export function ChinoParticlePicker({
   // same as backend
   const candidateAlt = candidate === "ん" ? "の" : "";
 
-  const candidateParticles: ChinoParticle[] = particleNumbers.length
-    ? particleNumbers.flatMap((n) => topToChinos?.get(n) || [])
+  const candidateParticles: ChinoParticle[] = candidateNumbers.length
+    ? candidateNumbers.flatMap((n) => topToChinos?.get(n) || [])
     : Array.from(topToChinos.values())
         .filter((v) => v[0].particle.includes(candidate) || (candidateAlt && v[0].particle.includes(candidateAlt)))
         .flat();
