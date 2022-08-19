@@ -301,6 +301,14 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
       );
     });
 
+  // Since we can add particles manually, which the NLP server won't know about, make a list of all particles
+  const allParticles = clozes.particles;
+  {
+    const particleKey = (p: Particle) => `${p.startIdx}/${p.endIdx}/${p.cloze.cloze}`;
+    const nlpKeys = new Set(allParticles.map(particleKey));
+    allParticles.push(...particles.filter((savedParticle) => !nlpKeys.has(particleKey(savedParticle))));
+  }
+
   return (
     <div className={styles["annotator"]}>
       <h2 lang={"ja"}>
@@ -414,26 +422,27 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         <details open>
           <summary>All particles found</summary>
           <ol>
-            {clozes.particles.map((foundParticle, i) => {
+            {allParticles.map((foundParticle, i) => {
               return (
                 <li key={i}>
                   <sub>{foundParticle.cloze.left}</sub>
                   {foundParticle.cloze.cloze}
                   <sub>{foundParticle.cloze.right}</sub>:{" "}
-                  {foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")}{" "}
-                  {foundParticle.chino.length && (
-                    <ChinoParticlePicker
-                      candidateNumbers={foundParticle.chino.map(([i]) => i)}
-                      currentValue={particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag}
-                      onChange={(e) =>
-                        setParticles(
-                          e
-                            ? upsertIfNew(particles, { ...foundParticle, chinoTag: e }, clozeToKey)
-                            : particles.filter((x) => clozeToKey(x) !== clozeToKey(foundParticle))
-                        )
-                      }
-                    />
-                  )}
+                  {foundParticle.chino.length
+                    ? foundParticle.morphemes.map((m) => m.partOfSpeech.join("/")).join(", ")
+                    : "(manual particle)"}{" "}
+                  <ChinoParticlePicker
+                    candidateNumbers={foundParticle.chino.map(([i]) => i)}
+                    candidate={foundParticle.cloze.cloze}
+                    currentValue={particles.find((x) => clozeToKey(foundParticle) === clozeToKey(x))?.chinoTag}
+                    onChange={(e) =>
+                      setParticles(
+                        e
+                          ? upsertIfNew(particles, { ...foundParticle, chinoTag: e }, clozeToKey)
+                          : particles.filter((x) => clozeToKey(x) !== clozeToKey(foundParticle))
+                      )
+                    }
+                  />
                 </li>
               );
             })}
