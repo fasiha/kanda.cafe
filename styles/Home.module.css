@@ -69,3 +69,7 @@ li.annotate-bullet.sib2 {
 li.annotate-bullet.sib1 {
   background-color: var(--orangeSosekiProject);
 }
+
+.morpheme-annotations ul.kanjidic-list {
+  font-size: small;
+}

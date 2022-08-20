@@ -23,11 +23,10 @@ import {
 } from "../components/ChinoParticlePicker";
 import { SimpleCharacter } from "curtiz-japanese-nlp/kanjidic";
 import { groupBy } from "../utils";
-import { generateContextClozed } from "curtiz-utils";
+import { generateContextClozed, hasKanji } from "curtiz-utils";
 import { hidden } from "../hidden";
 
 export const getStaticProps = async () => {
-  // might only print if you restart next dev server
   const parentDir = path.join(process.cwd(), "data");
   const jsons = (await readdir(parentDir)).filter((f) => f.toLowerCase().endsWith(".json"));
   const sentences: { data: SentenceDbEntry; sentence: string }[] = await Promise.all(
@@ -738,6 +737,8 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
     return ret;
   }
 
+  const kanjiPerIdx = new Map(furigana.map((fs, idx) => [idx, furiganaToString(fs).split("").filter(hasKanji)]));
+
   return (
     <>
       <span className={styles[className]} lang={"ja"}>
@@ -766,6 +767,7 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
                 {covered.has(idx) ? (
                   <span className={styles["morpheme-annotations"]}>
                     <ul>{covered.get(idx)}</ul>
+                    <Kanjidic hits={kanjidic} wantedKanji={kanjiPerIdx.get(idx)} />
                   </span>
                 ) : (
                   ""
@@ -780,20 +782,23 @@ const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
 
 interface KanjidicProps {
   hits: v1ResSentenceAnalyzed["kanjidic"];
+  wantedKanji?: string[];
 }
-function Kanjidic({ hits }: KanjidicProps) {
+function Kanjidic({ hits, wantedKanji: onlyKanji }: KanjidicProps) {
   return (
-    <ul>
-      {Object.values(hits).map((dic, i) => (
-        <li key={i}>
-          {renderKanjidicRoot(dic)}
-          <ul>
-            {dic.dependencies.map((root, i) => (
-              <KanjidicChild key={i} root={root} />
-            ))}
-          </ul>
-        </li>
-      ))}
+    <ul className={styles["kanjidic-list"]}>
+      {Object.values(hits)
+        .filter((dic) => (onlyKanji ? onlyKanji.includes(dic.literal) : true))
+        .map((dic, i) => (
+          <li key={i}>
+            {renderKanjidicRoot(dic)}
+            <ul>
+              {dic.dependencies.map((root, i) => (
+                <KanjidicChild key={i} root={root} />
+              ))}
+            </ul>
+          </li>
+        ))}
     </ul>
   );
 }
