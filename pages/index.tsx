@@ -195,9 +195,10 @@ interface AnnotateProps {
   line: string;
   sentencesDb: SentenceDb;
   allDictHits: Map<string, { sense: number; word: Word }>;
+  oldLine?: string;
 }
 // This should not work in static-generated output, ideally it won't exist.
-const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
+const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotateProps) => {
   // This component will be called for lines that haven't been annotated yet.
 
   const [nlp, setNlp] = useState<v1ResSentenceAnalyzed | undefined>(undefined);
@@ -217,7 +218,7 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         const req = await fetch(`${helper_url}/sentence/${line}`, {
           headers: { Accept: "application/json" },
         });
-        const data = await req.json();
+        const data: v1ResSentenceAnalyzed = await req.json();
         setNlp(data);
         setKanjidic(data.kanjidic);
 
@@ -227,10 +228,85 @@ const Annotate = ({ line, sentencesDb, allDictHits }: AnnotateProps) => {
         }
         setKanjidic(data.kanjidic);
 
+        // if there's an `oldLine` and we've not added ANY annotations, try to recover
+        // old annotations and move it here
+        if (oldLine && oldLine !== line && dictHits.length === 0 && conjHits.length === 0 && particles.length === 0) {
+          const oldData = sentencesDb[oldLine];
+          if (oldData) {
+            const newMorphemes = data.furigana.map(furiganaToString);
+            const oldMorphemes = oldData.data.furigana.map(furiganaToString);
+
+            const newDictHits: typeof dictHits = [];
+            for (const oldDict of oldData.data.dictHits) {
+              const oldCloze = generateContextClozed(
+                oldMorphemes.slice(oldDict.startIdx).join(""),
+                oldMorphemes.slice(oldDict.startIdx, oldDict.endIdx).join(""),
+                oldMorphemes.slice(oldDict.endIdx).join("")
+              );
+
+              // this check uses parts of morphemes so can't move to `substringInArray`
+              if (
+                line.includes(oldCloze.left.slice(-1) + oldCloze.cloze) ||
+                line.includes(oldCloze.cloze + oldCloze.right.slice(0, 1))
+              ) {
+                // New line likely includes this dict hit: find this cloze in it
+                const lineIdx = substringInArray(newMorphemes, oldCloze.cloze);
+                if (lineIdx) {
+                  newDictHits.push({
+                    startIdx: lineIdx.startIdx,
+                    endIdx: lineIdx.endIdx,
+                    word: oldDict.word,
+                    sense: oldDict.sense,
+                  });
+                }
+              }
+            }
+            setDictHits(newDictHits);
+
+            // very similar processing to `dictHits` above
+            const newParticles: typeof particles = [];
+            for (const oldParticle of oldData.data.particles) {
+              const oldCloze = generateContextClozed(
+                oldMorphemes.slice(oldParticle.startIdx).join(""),
+                oldMorphemes.slice(oldParticle.startIdx, oldParticle.endIdx).join(""),
+                oldMorphemes.slice(oldParticle.endIdx).join("")
+              );
+              if (
+                line.includes(oldCloze.left.slice(-1) + oldCloze.cloze) ||
+                line.includes(oldCloze.cloze + oldCloze.right.slice(0, 1))
+              ) {
+                const lineIdx = substringInArray(newMorphemes, oldCloze.cloze);
+                if (lineIdx) {
+                  newParticles.push({ ...oldParticle, startIdx: lineIdx.startIdx, endIdx: lineIdx.endIdx });
+                }
+              }
+            }
+            setParticles(newParticles);
+
+            const newConjHits: typeof conjHits = [];
+            for (const oldConj of oldData.data.conjHits) {
+              // much less risk of an unwanted collision with conjugated verbs/adjectives
+              const lineIdx = substringInArray(
+                newMorphemes,
+                oldMorphemes.slice(oldConj.startIdx, oldConj.endIdx).join("")
+              );
+              if (lineIdx) {
+                const nlpConj = data.clozes?.conjugatedPhrases.find(
+                  (c) => c.startIdx === lineIdx.startIdx && c.endIdx === lineIdx.endIdx
+                );
+                if (nlpConj) {
+                  newConjHits.push({ ...nlpConj, selectedDeconj: oldConj.selectedDeconj });
+                }
+              }
+            }
+            setConjHits(newConjHits);
+          }
+        }
+
         console.log("nlp", data);
       })();
     }
-  }, [helper_url, line, nlp, furigana]);
+  }, [helper_url, line, nlp, furigana, oldLine, dictHits, conjHits, particles, sentencesDb]);
 
   useEffect(() => {
     saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} }, helper_url, sentencesDb);
@@ -956,7 +1032,7 @@ export default function HomePage({
     [sentencesDb]
   );
 
-  const s = (s: string) =>
+  const sentenceHelper = (s: string, old?: string) =>
     !annotating.has(s) ? (
       <>
         <RenderSentence key={s} line={s} sentencesDb={sentencesDb} tags={tags} />
@@ -966,7 +1042,7 @@ export default function HomePage({
       </>
     ) : (
       <>
-        <Annotate key={s} line={s} sentencesDb={sentencesDb} allDictHits={allDictHits} />
+        <Annotate key={s} line={s} oldLine={old} sentencesDb={sentencesDb} allDictHits={allDictHits} />
         <button
           className={styles["edit-done-edit"]}
           onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}
@@ -975,5 +1051,19 @@ export default function HomePage({
         </button>
       </>
     );
-  return hidden(s);
+  return hidden(sentenceHelper);
+}
+
+function substringInArray(v: string[], target: string): undefined | { startIdx: number; endIdx: number } {
+  // this is a prefix scan of `v`'s elements' lengths
+  const cumLengths = v.map((s) => s.length).reduce((p, x) => p.concat(x + p[p.length - 1]), [0]);
+  const haystack = v.join("");
+  const match = haystack.indexOf(target);
+  if (match >= 0) {
+    const startIdx = cumLengths.indexOf(match);
+    const endIdx = cumLengths.indexOf(match + target.length);
+    if (startIdx >= 0 && endIdx >= 0) {
+      return { startIdx, endIdx };
+    }
+  }
 }
