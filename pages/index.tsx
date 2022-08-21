@@ -936,7 +936,19 @@ function AddDictHit({ furigana, submit, sentencesDb }: AddDictHit) {
   const [end, setEnd] = useState(furigana.length);
   const [wordId, setWordId] = useState("");
   const [sense, setSense] = useState(0);
-  const word = useMemo(() => (wordId ? searchSentencesDbForJmdictId(sentencesDb, wordId) : undefined), [wordId]);
+  const [word, setWord] = useState<Word | undefined>(undefined);
+  const [helper_url] = useState(() => `http://${window.location.hostname}:3010`);
+
+  useEffect(() => {
+    (async function main() {
+      const reply = await fetch(`${helper_url}/jmdict/${wordId}`);
+      if (reply.ok) {
+        setWord(await reply.json());
+      } else {
+        console.error(`${reply.status} ${reply.statusText}`);
+      }
+    })();
+  }, [wordId, helper_url, setWord]);
 
   return (
     <p>

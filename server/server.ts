@@ -65,6 +65,18 @@ app.delete('/sentence', (req, res) => {
   }
 });
 
+app.get('/jmdict/:wordId', async (req, res) => {
+  const {wordId} = req.params;
+  try {
+    const reply = await fetch(CURTIZ_URL + `/api/v1/jmdict/${wordId}`)
+    res.json(await reply.json());
+  } catch (e) {
+    console.error(e);
+    res.status(400).send('error')
+  }
+});
+
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
