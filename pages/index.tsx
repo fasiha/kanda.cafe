@@ -14,7 +14,18 @@ import {
   Particle,
   Morpheme,
 } from "curtiz-japanese-nlp/interfaces";
-import { AdjDeconjugated, Deconjugated } from "kamiya-codec";
+import {
+  AdjConjugation,
+  adjConjugations,
+  AdjDeconjugated,
+  auxiliaries,
+  Auxiliary,
+  Conjugation,
+  conjugations,
+  Deconjugated,
+  conjugateAuxiliaries,
+  adjConjugate,
+} from "kamiya-codec";
 import {
   ChinoParticlePicker,
   convertSectionToChinoLine,
@@ -48,7 +59,10 @@ interface Hit {
   sense: number;
 }
 
-type AnnotatedConjugatedPhrase = ConjugatedPhrase & { selectedDeconj: ConjugatedPhrase["deconj"][0] };
+type PartPartial<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>;
+type AnnotatedConjugatedPhrase = PartPartial<ConjugatedPhrase, "morphemes"> & {
+  selectedDeconj: ConjugatedPhrase["deconj"][0];
+};
 type AnnotatedParticle = Particle & { chinoTag: string };
 
 function isAnnotatedParticle(p: Particle | AnnotatedParticle): p is AnnotatedParticle {
@@ -444,11 +458,7 @@ const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotateProps) =>
           <summary>Selected dictionary entries</summary>
           <ul>{renderHits(dictHits)}</ul>
           <details>
-            <AddDictHit
-              furigana={furigana}
-              submit={(hit) => setDictHits(upsertIfNew(dictHits, hit, hitkey))}
-              sentencesDb={sentencesDb}
-            />
+            <AddDictHit furigana={furigana} submit={(hit) => setDictHits(upsertIfNew(dictHits, hit, hitkey))} />
             <summary>Add custom dictionary hit</summary>
           </details>
         </details>
@@ -504,6 +514,13 @@ const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotateProps) =>
               </li>
             ))}
           </ol>
+          <details>
+            <ManualConjugation
+              furigana={furigana}
+              submit={(newConj) => setConjHits(upsertIfNew(conjHits, newConj, clozeToKey))}
+            />
+            <summary>Add custom conjugation</summary>
+          </details>
         </details>
         <details open>
           <summary>All particles found</summary>
@@ -863,18 +880,6 @@ async function saveDb(
 // https://stackoverflow.com/questions/70843127#comment128628953_70843200
 type Ugh<T> = (T extends (infer X)[] ? X : never)[];
 
-function searchSentencesDbForJmdictId(db: SentenceDb, id: string) {
-  if (!id) {
-    return undefined;
-  }
-  for (const key in db) {
-    const hit = db[key].data.dictHits.find((h) => h.word.id === id);
-    if (hit) {
-      return hit?.word;
-    }
-  }
-}
-
 interface AddParticle {
   furigana: Furigana[][];
   morphemes: Morpheme[];
@@ -926,12 +931,134 @@ function AddParticle({ furigana, morphemes, submit }: AddParticle) {
   );
 }
 
+interface ManualConjugationProps {
+  furigana: Furigana[][];
+  submit: (conj: AnnotatedConjugatedPhrase) => void;
+}
+function ManualConjugation({ furigana, submit }: ManualConjugationProps) {
+  const [start, setStart] = useState(0);
+  const [end, setEnd] = useState(furigana.length);
+  const [lemma, setLemma] = useState("");
+
+  const [conj, setConj] = useState<undefined | Conjugation | AdjConjugation>(undefined);
+  const [auxs, setAuxs] = useState<Auxiliary[]>([]);
+
+  const [verbMode, setVerbMode] = useState(true);
+  const [typeII, setTypeII] = useState(false);
+  const [iAdj, setIAdj] = useState(true);
+
+  let results: string[] = [];
+  if (lemma) {
+    try {
+      if (verbMode && isConjugation(conj)) {
+        results = conjugateAuxiliaries(lemma, auxs, conj, typeII);
+      } else if (!verbMode && isAdjConjugation(conj)) {
+        results = adjConjugate(lemma, conj, iAdj);
+      }
+    } catch (e) {
+      // very likely an unallowed conjugation was asked for. Do nothing.
+    }
+  }
+
+  function submitHelper() {
+    const cloze = generateContextClozed(
+      furiganaToString(furigana.slice(0, start)),
+      furiganaToString(furigana.slice(start, end)),
+      furiganaToString(furigana.slice(end))
+    );
+    const deconj = verbMode
+      ? [{ auxiliaries: auxs, conjugation: conj, result: results } as Deconjugated]
+      : [{ conjugation: conj, result: results } as AdjDeconjugated];
+    const final: AnnotatedConjugatedPhrase = {
+      startIdx: start,
+      endIdx: end,
+      lemmas: [[lemma]],
+      cloze,
+      deconj,
+      selectedDeconj: deconj[0],
+    };
+    submit(final);
+  }
+
+  return (
+    <p>
+      Tag from{" "}
+      <MorphemesSelector
+        furigana={furigana}
+        submit={(s, e) => {
+          setStart(s);
+          setEnd(e);
+        }}
+      />{" "}
+      <input type="text" placeholder="dictionary form" value={lemma} onChange={(e) => setLemma(e.target.value)} />{" "}
+      <button onClick={() => setVerbMode(!verbMode)}>Switch to {verbMode ? "adjective" : "verb"}</button>{" "}
+      <label>
+        {verbMode ? "Type II ichidan verb" : "i adjective"}{" "}
+        <input
+          type="checkbox"
+          checked={verbMode ? typeII : iAdj}
+          onChange={() => (verbMode ? setTypeII(!typeII) : setIAdj(!iAdj))}
+        ></input>
+      </label>{" "}
+      {verbMode ? (
+        <label>
+          Type in space-separated auxiliaries{" "}
+          <input
+            type="text"
+            placeholder="auxiliaries"
+            value={auxs.join(" ")}
+            onChange={(e) => setAuxs(e.target.value.split(" ").filter(isAux))}
+          />
+        </label>
+      ) : (
+        ""
+      )}{" "}
+      <label>
+        Pick final conjugation:{" "}
+        <select
+          value={conj}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (isConjugation(value) || isAdjConjugation(value)) {
+              setConj(value);
+            } else {
+              setConj(undefined);
+            }
+          }}
+        >
+          <option key="0" value={undefined}>
+            Pick
+          </option>
+          {(verbMode ? conjugations : adjConjugations).map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </label>{" "}
+      Results: {results.join("・")}{" "}
+      <button disabled={results.length === 0} onClick={submitHelper}>
+        Accept
+      </button>
+    </p>
+  );
+}
+
+function isConjugation(x: string | undefined): x is Conjugation {
+  return conjugations.includes(x as Conjugation);
+}
+function isAdjConjugation(x: string | undefined): x is AdjConjugation {
+  return adjConjugations.includes(x as AdjConjugation);
+}
+function isAux(x: string | undefined): x is Auxiliary {
+  return auxiliaries.includes(x as Auxiliary);
+}
+
 interface AddDictHit {
   furigana: Furigana[][];
   submit: (hit: Hit) => void;
-  sentencesDb: SentenceDb;
 }
-function AddDictHit({ furigana, submit, sentencesDb }: AddDictHit) {
+function AddDictHit({ furigana, submit }: AddDictHit) {
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(furigana.length);
   const [wordId, setWordId] = useState("");
@@ -999,7 +1126,7 @@ interface MorphemesSelectorProps {
 function MorphemesSelector({ furigana, submit }: MorphemesSelectorProps) {
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(furigana.length);
-  useEffect(() => submit(start, end), [start, end]);
+  useEffect(() => submit(start, end), [start, end, submit]);
   return (
     <>
       <select
