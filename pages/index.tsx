@@ -7,7 +7,6 @@ import styles from "../styles/Home.module.css";
 import { v1ResSentenceAnalyzed, Word } from "curtiz-japanese-nlp/interfaces";
 
 import { setup } from "../components/ChinoParticlePicker";
-import { hidden } from "../hidden";
 import { Annotate, RenderSentence, SentenceDb, SentenceDbEntry } from "../components/annotator";
 
 export const getStaticProps = async () => {
@@ -43,7 +42,7 @@ export default function HomePage({
     [sentencesDb]
   );
 
-  const sentenceHelper = (s: string, old?: string) =>
+  const s = (s: string, old?: string) =>
     !annotating.has(s) ? (
       <>
         <RenderSentence key={s} line={s} sentencesDb={sentencesDb} tags={tags} />
@@ -68,5 +67,13 @@ export default function HomePage({
         </button>
       </div>
     );
-  return hidden(sentenceHelper);
+  return (
+    <div>
+      <blockquote>Let’s do Sōseki Natusme’s “I am a Cat”!</blockquote>
+      <div>
+        {s("吾輩は猫である。")}
+        {s("名前はまだ無い。")}
+      </div>
+    </div>
+  );
 }
