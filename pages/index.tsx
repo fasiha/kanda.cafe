@@ -1058,15 +1058,21 @@ export default function HomePage({
         </button>
       </>
     ) : (
-      <>
+      <div>
+        <button
+          className={styles["edit-done-edit"]}
+          onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}
+        >
+          ✅ Done
+        </button>
         <Annotate key={s} line={s} oldLine={old} sentencesDb={sentencesDb} allDictHits={allDictHits} />
         <button
           className={styles["edit-done-edit"]}
           onClick={() => setAnnotating(new Set([...annotating].filter((x) => x !== s)))}
         >
-          ✅
+          ✅ Done
         </button>
-      </>
+      </div>
     );
   return hidden(sentenceHelper);
 }
