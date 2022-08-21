@@ -463,7 +463,17 @@ const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotateProps) =>
           </details>
         </details>
         <details open>
-          <summary>All conjugated phrases found</summary>
+          <summary>All conjugated phrases</summary>
+          <p>Picked:</p>
+          <ol>
+            {conjHits.map((conj, i) => (
+              <li key={i}>
+                <Furigana vv={furigana.slice(conj.startIdx, conj.endIdx)} /> = <Furigana vv={[conj.lemmas[0]]} />{" "}
+                {renderDeconjugation(conj.selectedDeconj)}
+              </li>
+            ))}
+          </ol>
+          <p>Found:</p>
           <ol>
             {conjGroupedByStart.map(([startIdx, conjugatedPhrases]) => (
               <li key={startIdx}>
