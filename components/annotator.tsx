@@ -931,12 +931,13 @@ function ManualConjugation({ furigana, submit }: ManualConjugationProps) {
   const [lemma, setLemma] = useState("");
 
   const [conj, setConj] = useState<undefined | Conjugation | AdjConjugation>(undefined);
-  const [auxs, setAuxs] = useState<Auxiliary[]>([]);
+  const [auxText, setAuxText] = useState("");
 
   const [verbMode, setVerbMode] = useState(true);
   const [typeII, setTypeII] = useState(false);
   const [iAdj, setIAdj] = useState(true);
 
+  const auxs: Auxiliary[] = auxText.split(" ").filter(isAux);
   let results: string[] = [];
   if (lemma) {
     try {
@@ -980,7 +981,12 @@ function ManualConjugation({ furigana, submit }: ManualConjugationProps) {
           setEnd(e);
         }}
       />{" "}
-      <input type="text" placeholder="dictionary form" value={lemma} onChange={(e) => setLemma(e.target.value)} />{" "}
+      <input
+        type="text"
+        placeholder="dictionary form"
+        value={lemma}
+        onChange={(e) => setLemma(e.target.value.trim())}
+      />{" "}
       <button onClick={() => setVerbMode(!verbMode)}>Switch to {verbMode ? "adjective" : "verb"}</button>{" "}
       <label>
         {verbMode ? "Type II ichidan verb" : "i adjective"}{" "}
@@ -996,13 +1002,14 @@ function ManualConjugation({ furigana, submit }: ManualConjugationProps) {
           <input
             type="text"
             placeholder="auxiliaries"
-            value={auxs.join(" ")}
-            onChange={(e) => setAuxs(e.target.value.split(" ").filter(isAux))}
+            value={auxText}
+            onChange={(e) => setAuxText(e.target.value.trim())}
           />
         </label>
       ) : (
         ""
       )}{" "}
+      (Valid auxiliaries: {auxs.join("+")}){" "}
       <label>
         Pick final conjugation:{" "}
         <select
