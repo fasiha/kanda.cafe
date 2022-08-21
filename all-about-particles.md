@@ -60,7 +60,7 @@
 	5. Used with two or more announce which servers examples of a larger list: “either… Or (and others of a similar nature)”
 	6. Indicates one possibility: “… Or something”
 6. と
-	1. Follows nouns; indicates such meanings as “and“ and “with” and sets off names
+	1. Follows nouns; indicates such meanings as “and” and “with” and sets off names
 		1. Joins nouns, usually two or three (but not phrases and clauses): “and” (contrast with や #8.1)
 		2. Indicates a comparison or contrast: “and” or (when a choice is asked for) “or”
 		3. “together, with”
