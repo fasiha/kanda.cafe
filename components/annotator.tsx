@@ -1154,3 +1154,358 @@ function MorphemesSelector({ furigana, submit }: MorphemesSelectorProps) {
     </>
   );
 }
+
+export function Jdepp() {
+  const furigana = [
+    ["ワン"],
+    ["コロ"],
+    [
+      {
+        ruby: "警",
+        rt: "けい",
+      },
+      {
+        ruby: "察",
+        rt: "さつ",
+      },
+    ],
+    ["で"],
+    ["は"],
+    ["、"],
+    [
+      {
+        ruby: "色",
+        rt: "いろ",
+      },
+      {
+        ruby: "白",
+        rt: "じろ",
+      },
+    ],
+    [
+      "やせ",
+      {
+        ruby: "型",
+        rt: "がた",
+      },
+    ],
+    ["と"],
+    ["いう"],
+    [
+      {
+        ruby: "目",
+        rt: "もく",
+      },
+      {
+        ruby: "撃",
+        rt: "げき",
+      },
+    ],
+    [
+      {
+        ruby: "情",
+        rt: "じょう",
+      },
+      {
+        ruby: "報",
+        rt: "ほう",
+      },
+    ],
+    ["と"],
+    [
+      {
+        ruby: "金",
+        rt: "きん",
+      },
+      {
+        ruby: "庫",
+        rt: "こ",
+      },
+    ],
+    ["に"],
+    [
+      {
+        ruby: "残",
+        rt: "のこ",
+      },
+      "さ",
+    ],
+    ["れ"],
+    ["た"],
+    [
+      {
+        ruby: "鋭",
+        rt: "するど",
+      },
+      "い",
+    ],
+    [
+      {
+        ruby: "爪",
+        rt: "つめ",
+      },
+      {
+        ruby: "痕",
+        rt: "あと",
+      },
+    ],
+    ["から"],
+    ["、"],
+    [
+      {
+        ruby: "犯",
+        rt: "はん",
+      },
+      {
+        ruby: "人",
+        rt: "にん",
+      },
+    ],
+    ["は"],
+    [
+      {
+        ruby: "禁",
+        rt: "きん",
+      },
+      {
+        ruby: "錮",
+        rt: "こ",
+      },
+    ],
+    [
+      {
+        ruby: "破",
+        rt: "やぶ",
+      },
+      "り",
+    ],
+    ["の"],
+    [
+      {
+        ruby: "常",
+        rt: "じょう",
+      },
+      {
+        ruby: "習",
+        rt: "しゅう",
+      },
+    ],
+    [
+      {
+        ruby: "犯",
+        rt: "はん",
+      },
+    ],
+    ["「"],
+    [
+      {
+        ruby: "鉤",
+        rt: "かぎ",
+      },
+      {
+        ruby: "爪",
+        rt: "づめ",
+      },
+    ],
+    ["の"],
+    ["シロ"],
+    ["」"],
+    ["と"],
+    [
+      {
+        ruby: "断",
+        rt: "だん",
+      },
+      {
+        ruby: "定",
+        rt: "てい",
+      },
+    ],
+    ["し"],
+    ["、"],
+    [
+      {
+        ruby: "行方",
+        rt: "ゆくえ",
+      },
+    ],
+    ["を"],
+    [
+      {
+        ruby: "追",
+        rt: "お",
+      },
+      "っ",
+    ],
+    ["て"],
+    ["いる"],
+    ["。"],
+  ];
+  const bunsetsu = [
+    {
+      morphemes: 1,
+      idx: 0,
+      parent: 16,
+    },
+    {
+      morphemes: 5,
+      idx: 1,
+      parent: 16,
+    },
+    {
+      morphemes: 3,
+      idx: 2,
+      parent: 3,
+    },
+    {
+      morphemes: 1,
+      idx: 3,
+      parent: 4,
+    },
+    {
+      morphemes: 3,
+      idx: 4,
+      parent: 5,
+    },
+    {
+      morphemes: 2,
+      idx: 5,
+      parent: 6,
+    },
+    {
+      morphemes: 3,
+      idx: 6,
+      parent: 8,
+    },
+    {
+      morphemes: 1,
+      idx: 7,
+      parent: 8,
+    },
+    {
+      morphemes: 3,
+      idx: 8,
+      parent: 16,
+    },
+    {
+      morphemes: 2,
+      idx: 9,
+      parent: 16,
+    },
+    {
+      morphemes: 3,
+      idx: 10,
+      parent: 11,
+    },
+    {
+      morphemes: 2,
+      idx: 11,
+      parent: 13,
+    },
+    {
+      morphemes: 3,
+      idx: 12,
+      parent: 13,
+    },
+    {
+      morphemes: 3,
+      idx: 13,
+      parent: 14,
+    },
+    {
+      morphemes: 3,
+      idx: 14,
+      parent: 16,
+    },
+    {
+      morphemes: 2,
+      idx: 15,
+      parent: 16,
+    },
+    {
+      morphemes: 4,
+      idx: 16,
+      parent: -1,
+    },
+  ];
+
+  const bunsetsuFurigana: Furigana[][][] = [];
+  {
+    let startIdx = 0;
+    for (const b of bunsetsu) {
+      bunsetsuFurigana.push(furigana.slice(startIdx, startIdx + b.morphemes));
+      startIdx += b.morphemes;
+    }
+  }
+  const idxToParentIdx: Map<number, number> = new Map();
+  for (const b of bunsetsu) {
+    idxToParentIdx.set(b.idx, b.parent);
+  }
+
+  function calcIdxToNumLevels(parent: number) {
+    let n = 0;
+    while (parent !== -1) {
+      const hit = idxToParentIdx.get(parent);
+      if (hit === undefined) {
+        throw new Error("what");
+      }
+      parent = hit;
+      n++;
+    }
+    return n;
+  }
+  const idxToNumLevels: Map<number, number> = new Map(bunsetsu.map((b) => [b.idx, calcIdxToNumLevels(b.idx)]));
+
+  const maxLevels = Math.max(...Array.from(idxToNumLevels.values()));
+
+  console.log({ maxLevels, idxToNumLevels });
+
+  return (
+    <table className={styles["jdepp"]}>
+      <tbody>
+        {bunsetsu.map((b) => {
+          const level = idxToNumLevels.get(b.idx); // 1, 2, ...
+          if (!level) {
+            throw new Error("what2");
+          }
+          const tds = Array.from(Array(level), (_, n) => (
+            <td
+              key={n}
+              colSpan={n === 0 ? maxLevels - level + 1 : 1}
+              className={
+                n === 0
+                  ? "bunsetsu"
+                  : `${styles["box-drawing"]} ` +
+                    (n === level - 1 ? styles["box-drawing-plus"] : styles["box-drawing-plus"])
+              }
+            >
+              {n === 0 ? <Furigana vv={bunsetsuFurigana[b.idx]} /> : ""}
+            </td>
+          ));
+          return <tr key={b.idx}>{tds}</tr>;
+        })}
+      </tbody>
+    </table>
+  );
+}
+/*
+# S-ID: 1; J.DepP
+  0:　　　　　　　　　　　　　　　　　　　　　ワン━━┓
+  1:　　　　　　　　　　　　　　　　コロ警察では、━━┫
+  2:　　色白やせ型と━━┓　　　　　　　　　　　　　　┃
+  3:　　　　　　　　　いう━━┓　　　　　　　　　　　┃
+  4:　　　　　　　　　目撃情報と━━┓　　　　　　　　┃
+  5:　　　　　　　　　　　　　　金庫に━━┓　　　　　┃
+  6:　　　　　　　　　　　　　　　　残された━━┓　　┃
+  7:　　　　　　　　　　　　　　　　　　鋭い━━┫　　┃
+  8:　　　　　　　　　　　　　　　　　　爪痕から、━━┫
+  9:　　　　　　　　　　　　　　　　　　　　犯人は━━┫
+ 10:　　　　　　　　　禁錮破りの━━┓　　　　　　　　┃
+ 11:　　　　　　　　　　　　　　常習犯━━┓　　　　　┃
+ 12:　　　　　　　　　　　　　「鉤爪の━━┫　　　　　┃
+ 13:　　　　　　　　　　　　　　　　シロ」と━━┓　　┃
+ 14:　　　　　　　　　　　　　　　　　　　断定し、━━┫
+ 15:　　　　　　　　　　　　　　　　　　　　行方を━━┫
+ 16:　　　　　　　　　　　　　　　　　　　　追っている。EOS
+
+*/
