@@ -397,6 +397,10 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
       <details open>
         <summary>All annotations</summary>
         <details>
+          <Jdepp furigana={furigana} bunsetsus={nlp.bunsetsus} />
+          <summary>J.DepP</summary>
+        </details>
+        <details>
           <summary>Furigana editor</summary>
           <ul>
             {furigana.flatMap((fVec, outerIdx) =>
@@ -1152,5 +1156,98 @@ function MorphemesSelector({ furigana, submit }: MorphemesSelectorProps) {
         ))}
       </select>
     </>
+  );
+}
+
+interface JdeppProps {
+  furigana: Furigana[][]; // what comes from NLP server and what we save
+  bunsetsus: v1ResSentenceAnalyzed["bunsetsus"];
+}
+export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
+  const bunsetsuIndexes: { startIdx: number; endIdx: number }[] = [];
+  {
+    let startIdx = 0;
+    for (const b of bunsetsu) {
+      bunsetsuIndexes.push({ startIdx, endIdx: startIdx + b.morphemes.length });
+      startIdx += b.morphemes.length;
+    }
+  }
+  const idxToParentIdx: Map<number, number> = new Map();
+  for (const b of bunsetsu) {
+    idxToParentIdx.set(b.idx, b.parent);
+  }
+
+  function calcIdxToNumLevels(parent: number) {
+    let n = 0;
+    while (parent !== -1) {
+      const hit = idxToParentIdx.get(parent);
+      if (hit === undefined) {
+        throw new Error("what");
+      }
+      parent = hit;
+      n++;
+    }
+    return n;
+  }
+  const idxToNumLevels: Map<number, number> = new Map(bunsetsu.map((b) => [b.idx, calcIdxToNumLevels(b.idx)]));
+
+  const maxLevels = Math.max(...Array.from(idxToNumLevels.values()));
+
+  const parentsVisited: Set<number> = new Set();
+  const prevRowIsChild = Array(maxLevels).fill(false);
+
+  return (
+    <table className={styles["jdepp"]}>
+      <tbody>
+        {bunsetsu.map((b) => {
+          const level = idxToNumLevels.get(b.idx); // 1, 2, ...
+          const parent = idxToParentIdx.get(b.idx);
+          if (!level || !parent) {
+            throw new Error("what2");
+          }
+
+          const parentVisited = parentsVisited.has(parent);
+          parentsVisited.add(parent);
+
+          const tds = Array.from(Array(level), (_, n) => {
+            const colSpan = n === 0 ? maxLevels - level + 1 : 1;
+            let boxclass = "";
+            if (n === 0) {
+              boxclass = styles["bunsetsu"];
+            } else if (n === 1) {
+              boxclass = `${styles["box-drawing"]} ${
+                parentVisited ? styles["box-drawing-T"] : styles["box-drawing-7"]
+              }`;
+            } else if (n > 1) {
+              const actualColumn = maxLevels - level + 1 + n; // 1, 2, ...
+              if (prevRowIsChild[actualColumn - 1]) {
+                boxclass += ` ${styles["box-drawing"]} ${styles["box-drawing-1"]}`;
+              }
+            }
+
+            return (
+              <td key={n} colSpan={colSpan} className={boxclass}>
+                {n === 0 && (
+                  <Furigana vv={furigana.slice(bunsetsuIndexes[b.idx].startIdx, bunsetsuIndexes[b.idx].endIdx)} />
+                )}
+              </td>
+            );
+          });
+
+          for (let l = 0; l < maxLevels; l++) {
+            if (l <= maxLevels - level) {
+              // we just populated these
+              prevRowIsChild[l] = false;
+            } else if (l === maxLevels - level + 1) {
+              // but this is a child
+              prevRowIsChild[l] = true;
+            }
+            // don't touch any other elements
+          }
+
+          return <tr key={b.idx}>{tds}</tr>;
+        })}
+      </tbody>
+    </table>
   );
 }
