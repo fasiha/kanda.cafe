@@ -80,9 +80,9 @@ table.jdepp {
   border-collapse: collapse;
 }
 .jdepp td.box-drawing {
-  width: 1em;
+  width: 2em;
   text-align: center;
-  background-color: red;
+  background-color: darkorange;
 }
 .jdepp td.bunsetsu {
   text-align: right;
