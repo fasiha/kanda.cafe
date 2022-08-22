@@ -109,7 +109,7 @@
 12. で
 	1. Indicates a location of an action: "at, and" (contrast with に #13.2)
 	2. Indicates a means or implement: "by, with"
-	3. Indicates materials used: "of come from, with"
+	3. Indicates materials used: "of, from, with"
 	4. Indicates the greatest (largest, smallest, least, oldest, newest, etc.)
 	5. Indicates amount and scope: “within the space (time) of, in, for”
 	6. Indicates the mode or condition of the agent of an action (not to be confused with the subject)
