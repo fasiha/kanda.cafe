@@ -1164,11 +1164,11 @@ interface JdeppProps {
   bunsetsus: v1ResSentenceAnalyzed["bunsetsus"];
 }
 export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
-  const bunsetsuFurigana: Furigana[][][] = [];
+  const bunsetsuIndexes: { startIdx: number; endIdx: number }[] = [];
   {
     let startIdx = 0;
     for (const b of bunsetsu) {
-      bunsetsuFurigana.push(furigana.slice(startIdx, startIdx + b.morphemes.length));
+      bunsetsuIndexes.push({ startIdx, endIdx: startIdx + b.morphemes.length });
       startIdx += b.morphemes.length;
     }
   }
@@ -1194,7 +1194,7 @@ export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
   const maxLevels = Math.max(...Array.from(idxToNumLevels.values()));
 
   const parentsVisited: Set<number> = new Set();
-  let prevRowIsChild = Array(maxLevels).fill(false);
+  const prevRowIsChild = Array(maxLevels).fill(false);
 
   return (
     <table className={styles["jdepp"]}>
@@ -1215,40 +1215,34 @@ export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
             if (n === 0) {
               boxclass = styles["bunsetsu"];
             } else if (n === 1) {
-              boxclass += parentVisited
-                ? [styles["box-drawing"], styles["box-drawing-T"]].join(" ")
-                : [styles["box-drawing"], styles["box-drawing-7"]].join(" ");
-            }
-            if (n > 1) {
+              boxclass = `${styles["box-drawing"]} ${
+                parentVisited ? styles["box-drawing-T"] : styles["box-drawing-7"]
+              }`;
+            } else if (n > 1) {
               const actualColumn = maxLevels - level + 1 + n; // 1, 2, ...
               if (prevRowIsChild[actualColumn - 1]) {
                 boxclass += ` ${styles["box-drawing"]} ${styles["box-drawing-1"]}`;
               }
             }
 
-            let boxcontent: JSX.Element | string = <></>;
-            if (n === 0) {
-              boxcontent = (
-                <>
-                  <Furigana vv={bunsetsuFurigana[b.idx]} />
-                </>
-              );
-            }
-
             return (
               <td key={n} colSpan={colSpan} className={boxclass}>
-                {boxcontent}
+                {n === 0 && (
+                  <Furigana vv={furigana.slice(bunsetsuIndexes[b.idx].startIdx, bunsetsuIndexes[b.idx].endIdx)} />
+                )}
               </td>
             );
           });
 
-          // const colSpan = n === 0 ? maxLevels - level + 1 : 1;
           for (let l = 0; l < maxLevels; l++) {
             if (l <= maxLevels - level) {
+              // we just populated these
               prevRowIsChild[l] = false;
             } else if (l === maxLevels - level + 1) {
+              // but this is a child
               prevRowIsChild[l] = true;
             }
+            // don't touch any other elements
           }
 
           return <tr key={b.idx}>{tds}</tr>;
@@ -1257,30 +1251,3 @@ export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
     </table>
   );
 }
-
-/*
-
-7
--|
-|
-
-# S-ID: 1; J.DepP
-  0:　　　　　　　　　　　　　　　　　　　　　ワン━━┓
-  1:　　　　　　　　　　　　　　　　コロ警察では、━━┫
-  2:　　色白やせ型と━━┓　　　　　　　　　　　　　　┃
-  3:　　　　　　　　　いう━━┓　　　　　　　　　　　┃
-  4:　　　　　　　　　目撃情報と━━┓　　　　　　　　┃
-  5:　　　　　　　　　　　　　　金庫に━━┓　　　　　┃
-  6:　　　　　　　　　　　　　　　　残された━━┓　　┃
-  7:　　　　　　　　　　　　　　　　　　鋭い━━┫　　┃
-  8:　　　　　　　　　　　　　　　　　　爪痕から、━━┫
-  9:　　　　　　　　　　　　　　　　　　　　犯人は━━┫
- 10:　　　　　　　　　禁錮破りの━━┓　　　　　　　　┃
- 11:　　　　　　　　　　　　　　常習犯━━┓　　　　　┃
- 12:　　　　　　　　　　　　　「鉤爪の━━┫　　　　　┃
- 13:　　　　　　　　　　　　　　　　シロ」と━━┓　　┃
- 14:　　　　　　　　　　　　　　　　　　　断定し、━━┫
- 15:　　　　　　　　　　　　　　　　　　　　行方を━━┫
- 16:　　　　　　　　　　　　　　　　　　　　追っている。EOS
-
-*/
