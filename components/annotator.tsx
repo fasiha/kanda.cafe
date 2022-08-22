@@ -1458,37 +1458,77 @@ export function Jdepp() {
 
   const maxLevels = Math.max(...Array.from(idxToNumLevels.values()));
 
-  console.log({ maxLevels, idxToNumLevels });
+  const parentsVisited: Set<number> = new Set();
+  let prevRowIsChild = Array(maxLevels).fill(false);
 
   return (
     <table className={styles["jdepp"]}>
       <tbody>
         {bunsetsu.map((b) => {
           const level = idxToNumLevels.get(b.idx); // 1, 2, ...
-          if (!level) {
+          const parent = idxToParentIdx.get(b.idx);
+          if (!level || !parent) {
             throw new Error("what2");
           }
-          const tds = Array.from(Array(level), (_, n) => (
-            <td
-              key={n}
-              colSpan={n === 0 ? maxLevels - level + 1 : 1}
-              className={
-                n === 0
-                  ? "bunsetsu"
-                  : `${styles["box-drawing"]} ` +
-                    (n === level - 1 ? styles["box-drawing-plus"] : styles["box-drawing-plus"])
+
+          const parentVisited = parentsVisited.has(parent);
+          parentsVisited.add(parent);
+
+          const tds = Array.from(Array(level), (_, n) => {
+            const colSpan = n === 0 ? maxLevels - level + 1 : 1;
+            let boxclass = "";
+            if (n === 0) {
+              boxclass = styles["bunsetsu"];
+            } else if (n === 1) {
+              boxclass += parentVisited
+                ? [styles["box-drawing"], styles["box-drawing-T"]].join(" ")
+                : [styles["box-drawing"], styles["box-drawing-7"]].join(" ");
+            }
+            if (n > 1) {
+              const actualColumn = maxLevels - level + 1 + n; // 1, 2, ...
+              if (prevRowIsChild[actualColumn - 1]) {
+                boxclass += ` ${styles["box-drawing"]} ${styles["box-drawing-1"]}`;
               }
-            >
-              {n === 0 ? <Furigana vv={bunsetsuFurigana[b.idx]} /> : ""}
-            </td>
-          ));
+            }
+
+            let boxcontent: JSX.Element | string = <></>;
+            if (n === 0) {
+              boxcontent = (
+                <>
+                  <Furigana vv={bunsetsuFurigana[b.idx]} />
+                </>
+              );
+            }
+
+            return (
+              <td key={n} colSpan={colSpan} className={boxclass}>
+                {boxcontent}
+              </td>
+            );
+          });
+
+          // const colSpan = n === 0 ? maxLevels - level + 1 : 1;
+          for (let l = 0; l < maxLevels; l++) {
+            if (l <= maxLevels - level) {
+              prevRowIsChild[l] = false;
+            } else if (l === maxLevels - level + 1) {
+              prevRowIsChild[l] = true;
+            }
+          }
+
           return <tr key={b.idx}>{tds}</tr>;
         })}
       </tbody>
     </table>
   );
 }
+
 /*
+
+7
+-|
+|
+
 # S-ID: 1; J.DepP
   0:　　　　　　　　　　　　　　　　　　　　　ワン━━┓
   1:　　　　　　　　　　　　　　　　コロ警察では、━━┫
