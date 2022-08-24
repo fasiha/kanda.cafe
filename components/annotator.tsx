@@ -44,6 +44,7 @@ type AnnotatedConjugatedPhrase = PartPartial<ConjugatedPhrase, "morphemes"> & {
   selectedDeconj: ConjugatedPhrase["deconj"][0];
 };
 type AnnotatedParticle = Particle & { chinoTag: string };
+type SimplifiedBunsetsu = { idx: number; parent: number; numMorphemes: number };
 
 function isAnnotatedParticle(p: Particle | AnnotatedParticle): p is AnnotatedParticle {
   return "chinoTag" in p;
@@ -55,6 +56,8 @@ export interface SentenceDbEntry {
   conjHits: AnnotatedConjugatedPhrase[];
   particles: AnnotatedParticle[];
   kanjidic: v1ResSentenceAnalyzed["kanjidic"];
+  bunsetsus: SimplifiedBunsetsu[];
+  // sum of all numMorphemes === furigana.length
 }
 export type SentenceDb = Record<string, { data: SentenceDbEntry; sentence: string; hash?: string }>;
 
@@ -200,6 +203,7 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
   const [conjHits, setConjHits] = useState<AnnotatedConjugatedPhrase[]>(sentencesDb[line]?.data?.conjHits || []);
   const [particles, setParticles] = useState<AnnotatedParticle[]>(sentencesDb[line]?.data?.particles || []);
   const [kanjidic, setKanjidic] = useState<undefined | SentenceDbEntry["kanjidic"]>(sentencesDb[line]?.data?.kanjidic);
+  const [bunsetsus, setBunsetsus] = useState<SimplifiedBunsetsu[]>(sentencesDb[line]?.data?.bunsetsus || []);
   const [focusedMorphemeIdx, setFocusedMorphemeIdx] = useState(-1);
   const [helper_url] = useState(() => `http://${window.location.hostname}:3010`);
 
@@ -220,6 +224,7 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
           setFurigana(data.furigana);
         }
         setKanjidic(data.kanjidic);
+        setBunsetsus(data.bunsetsus.map((o) => ({ idx: o.idx, parent: o.parent, numMorphemes: o.morphemes.length })));
 
         // if there's an `oldLine` and we've not added ANY annotations, try to recover
         // old annotations and move it here
@@ -302,8 +307,13 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
   }, [helper_url, line, nlp, furigana, oldLine, dictHits, conjHits, particles, sentencesDb]);
 
   useEffect(() => {
-    saveDb(line, { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {} }, helper_url, sentencesDb);
-  }, [dictHits, conjHits, particles, furigana, kanjidic, helper_url, line, sentencesDb]);
+    saveDb(
+      line,
+      { dictHits, conjHits, particles, furigana, kanjidic: kanjidic || {}, bunsetsus },
+      helper_url,
+      sentencesDb
+    );
+  }, [dictHits, conjHits, particles, furigana, kanjidic, helper_url, line, sentencesDb, bunsetsus]);
 
   if (!nlp) {
     return <h2 lang={"ja"}>{furigana.length ? <Furigana vv={furigana} /> : line}</h2>;
@@ -397,7 +407,7 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
       <details open>
         <summary>All annotations</summary>
         <details>
-          <Jdepp furigana={furigana} bunsetsus={nlp.bunsetsus} />
+          <Jdepp furigana={furigana} bunsetsus={bunsetsus} />
           <summary>J.DepP</summary>
         </details>
         <details>
@@ -841,7 +851,7 @@ function renderKanjidicRoot(k: SimpleCharacter) {
 
 async function saveDb(
   line: string,
-  { dictHits, conjHits, particles, furigana, kanjidic }: SentenceDbEntry,
+  { dictHits, conjHits, particles, furigana, kanjidic, bunsetsus }: SentenceDbEntry,
   helper_url: string,
   sentencesDb?: SentenceDb
 ) {
@@ -851,7 +861,7 @@ async function saveDb(
     particles.length > 0 ||
     furigana.length > 0 ||
     Object.keys(kanjidic).length > 0;
-  const data: SentenceDbEntry = { dictHits, conjHits, particles, furigana, kanjidic };
+  const data: SentenceDbEntry = { dictHits, conjHits, particles, furigana, kanjidic, bunsetsus };
   const res = await fetch(`${helper_url}/sentence`, {
     method: post ? "POST" : "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -1161,15 +1171,15 @@ function MorphemesSelector({ furigana, submit }: MorphemesSelectorProps) {
 
 interface JdeppProps {
   furigana: Furigana[][]; // what comes from NLP server and what we save
-  bunsetsus: v1ResSentenceAnalyzed["bunsetsus"];
+  bunsetsus: SimplifiedBunsetsu[];
 }
 export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
   const bunsetsuIndexes: { startIdx: number; endIdx: number }[] = [];
   {
     let startIdx = 0;
     for (const b of bunsetsu) {
-      bunsetsuIndexes.push({ startIdx, endIdx: startIdx + b.morphemes.length });
-      startIdx += b.morphemes.length;
+      bunsetsuIndexes.push({ startIdx, endIdx: startIdx + b.numMorphemes });
+      startIdx += b.numMorphemes;
     }
   }
   const idxToParentIdx: Map<number, number> = new Map();
