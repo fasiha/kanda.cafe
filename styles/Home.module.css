@@ -121,6 +121,9 @@ table.jdepp {
   );
 }
 
+table.jdepp tr td:last-child {
+  border-bottom: 0.5px solid silver;
+}
 table.jdepp ul {
   margin: 0;
 }
