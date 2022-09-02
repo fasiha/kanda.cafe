@@ -390,6 +390,14 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
         </li>
       );
     });
+  const selectedDictHits = renderHits(dictHits);
+  const dictHitsPerMorpheme: Map<number, JSX.Element[]> = new Map();
+  for (const [idx, hit] of dictHits.entries()) {
+    const li = selectedDictHits[idx];
+    for (const mi of range(hit.startIdx, hit.endIdx)) {
+      dictHitsPerMorpheme.set(mi, (dictHitsPerMorpheme.get(mi) || []).concat(li));
+    }
+  }
 
   // Since we can add particles manually, which the NLP server won't know about, make a list of all particles
   const allParticles: (Particle | AnnotatedParticle)[] = clozes.particles;
@@ -407,7 +415,7 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
       <details open>
         <summary>All annotations</summary>
         <details>
-          <Jdepp furigana={furigana} bunsetsus={bunsetsus} />
+          <Jdepp furigana={furigana} bunsetsus={bunsetsus} morphemeToJsx={dictHitsPerMorpheme} />
           <summary>J.DepP</summary>
         </details>
         <details>
@@ -450,7 +458,7 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
         </details>
         <details open>
           <summary>Selected dictionary entries</summary>
-          <ul>{renderHits(dictHits)}</ul>
+          <ul>{selectedDictHits}</ul>
           <details>
             <AddDictHit furigana={furigana} submit={(hit) => setDictHits(upsertIfNew(dictHits, hit, hitkey))} />
             <summary>Add custom dictionary hit</summary>
@@ -1172,14 +1180,22 @@ function MorphemesSelector({ furigana, submit }: MorphemesSelectorProps) {
 interface JdeppProps {
   furigana: Furigana[][]; // what comes from NLP server and what we save
   bunsetsus: SimplifiedBunsetsu[];
+  morphemeToJsx: Map<number, JSX.Element[]>;
 }
-export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
+export function Jdepp({ furigana, bunsetsus: bunsetsu, morphemeToJsx }: JdeppProps) {
   const bunsetsuIndexes: { startIdx: number; endIdx: number }[] = [];
+  const bidxToJsxs: typeof morphemeToJsx = new Map();
   {
     let startIdx = 0;
-    for (const b of bunsetsu) {
-      bunsetsuIndexes.push({ startIdx, endIdx: startIdx + b.numMorphemes });
+    for (const [bidx, b] of bunsetsu.entries()) {
+      const i = { startIdx, endIdx: startIdx + b.numMorphemes };
+      bunsetsuIndexes.push(i);
       startIdx += b.numMorphemes;
+
+      for (const n of range(i.startIdx, i.endIdx)) {
+        const hits = morphemeToJsx.get(n) || [];
+        bidxToJsxs.set(bidx, (bidxToJsxs.get(bidx) || []).concat(hits));
+      }
     }
   }
   const idxToParentIdx: Map<number, number> = new Map();
@@ -1209,7 +1225,7 @@ export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
   return (
     <table className={styles["jdepp"]}>
       <tbody>
-        {bunsetsu.map((b) => {
+        {bunsetsu.map((b, bidx) => {
           const level = idxToNumLevels.get(b.idx); // 1, 2, ...
           const parent = idxToParentIdx.get(b.idx);
           if (!level || !parent) {
@@ -1243,6 +1259,7 @@ export function Jdepp({ furigana, bunsetsus: bunsetsu }: JdeppProps) {
               </td>
             );
           });
+          tds.push(<td key="last">{bidxToJsxs.has(bidx) && <ul>{bidxToJsxs.get(bidx) || []}</ul>}</td>);
 
           for (let l = 0; l < maxLevels; l++) {
             if (l <= maxLevels - level) {

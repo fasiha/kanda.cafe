@@ -120,3 +120,7 @@ table.jdepp {
     calc(50% + var(--b)) 0%
   );
 }
+
+table.jdepp ul {
+  margin: 0;
+}
