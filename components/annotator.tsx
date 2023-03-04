@@ -215,7 +215,7 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
         const req = await fetch(`${helper_url}/sentence/${line}`, {
           headers: { Accept: "application/json" },
         });
-        const data: v1ResSentenceAnalyzed = await req.json();
+        const data: v1ResSentenceAnalyzed = (await req.json())[0];
         setNlp(data);
         setKanjidic(data.kanjidic);
 
