@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 
 import {
@@ -10,6 +10,7 @@ import {
   ConjugatedPhrase,
   Particle,
   Morpheme,
+  v1ResSentenceNbest,
 } from "curtiz-japanese-nlp/interfaces";
 import {
   AdjConjugation,
@@ -126,6 +127,7 @@ function renderSenses(w: Word, tags: Record<string, string>): string[] {
     dialect: "🗣",
     field: "🀄️",
     misc: "✋",
+    // info: "💁",
   };
   return w.sense.map(
     (sense) =>
@@ -137,7 +139,8 @@ function renderSenses(w: Word, tags: Record<string, string>): string[] {
         .map(([k, v]) =>
           sense[k as TagKey].length ? ` (${v} ${sense[k as TagKey].map((k) => tags[k]).join("; ")})` : ""
         )
-        .join("")
+        .join("") +
+      (sense.info.length ? ` (💁 ${sense.info.join(" | ")})` : "")
   );
 }
 function range(start: number, endExclusive: number, step = 1) {
@@ -206,25 +209,40 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
   const [bunsetsus, setBunsetsus] = useState<SimplifiedBunsetsu[]>(sentencesDb[line]?.data?.bunsetsus || []);
   const [focusedMorphemeIdx, setFocusedMorphemeIdx] = useState(-1);
   const [helper_url] = useState(() => `http://${window.location.hostname}:3010`);
+  const [nBest, setNBest] = useState(1);
+  const [nBestNlp, setNBestNlp] = useState<v1ResSentenceNbest | undefined>(undefined);
+
+  const loadSingleFromNbest = useCallback(
+    (data: v1ResSentenceAnalyzed, throwAwayCustomFurigana = false) => {
+      setNlp(data);
+      setKanjidic(data.kanjidic);
+
+      if (furigana.length === 0 || throwAwayCustomFurigana) {
+        // don't overwrite our edited custom furigana (私's わたくし vs わたし)!
+        setFurigana(data.furigana);
+      }
+      setKanjidic(data.kanjidic);
+      setBunsetsus(data.bunsetsus.map((o) => ({ idx: o.idx, parent: o.parent, numMorphemes: o.morphemes.length })));
+      console.log("nlp", data);
+    },
+    [furigana]
+  );
 
   useEffect(() => {
     // Yes this will run twice in dev mode, see
     // https://reactjs.org/blog/2022/03/29/react-v18.html#new-strict-mode-behaviors
-    if (!nlp) {
+    if (nBestNlp?.length !== nBest) {
       (async function parse() {
-        const req = await fetch(`${helper_url}/sentence/${line}`, {
+        const req = await fetch(`${helper_url}/sentence/${line}?nBest=${nBest}`, {
           headers: { Accept: "application/json" },
         });
-        const data: v1ResSentenceAnalyzed = (await req.json())[0];
-        setNlp(data);
-        setKanjidic(data.kanjidic);
-
-        if (furigana.length === 0) {
-          // don't overwrite our edited custom furigana (私's わたくし vs わたし)!
-          setFurigana(data.furigana);
+        const fullData: v1ResSentenceNbest = await req.json();
+        if (typeof fullData[0] === "string") {
+          return;
         }
-        setKanjidic(data.kanjidic);
-        setBunsetsus(data.bunsetsus.map((o) => ({ idx: o.idx, parent: o.parent, numMorphemes: o.morphemes.length })));
+        setNBestNlp(fullData);
+        const data: v1ResSentenceAnalyzed = fullData[0];
+        loadSingleFromNbest(data);
 
         // if there's an `oldLine` and we've not added ANY annotations, try to recover
         // old annotations and move it here
@@ -300,11 +318,22 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
             setConjHits(newConjHits);
           }
         }
-
-        console.log("nlp", data);
       })();
     }
-  }, [helper_url, line, nlp, furigana, oldLine, dictHits, conjHits, particles, sentencesDb]);
+  }, [
+    helper_url,
+    line,
+    nlp,
+    furigana,
+    oldLine,
+    dictHits,
+    conjHits,
+    particles,
+    sentencesDb,
+    nBest,
+    loadSingleFromNbest,
+    nBestNlp,
+  ]);
 
   useEffect(() => {
     saveDb(
@@ -414,6 +443,35 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
       </h2>
       <details open>
         <summary>All annotations</summary>
+        <details>
+          <summary>Change MeCab number of parsings</summary>
+          <div>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={nBest}
+              onChange={(e) => {
+                const proposal = Number(e.target.value);
+                if (isFinite(proposal)) {
+                  setNBest(proposal);
+                }
+              }}
+            />
+            {nBestNlp?.map((parsing, idx) =>
+              typeof parsing === "string" ? (
+                ""
+              ) : (
+                <MorphemesTable
+                  pick={() => loadSingleFromNbest(parsing, true)}
+                  key={idx}
+                  number={idx + 1}
+                  morphemes={parsing.bunsetsus.flatMap((b) => b.morphemes)}
+                />
+              )
+            )}
+          </div>
+        </details>
         <details>
           <Jdepp furigana={furigana} bunsetsus={bunsetsus} morphemeToJsx={dictHitsPerMorpheme} />
           <summary>J.DepP</summary>
@@ -1273,6 +1331,44 @@ export function Jdepp({ furigana, bunsetsus: bunsetsu, morphemeToJsx }: JdeppPro
           }
 
           return <tr key={b.idx}>{tds}</tr>;
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+interface MorphemesTableProps {
+  morphemes: Morpheme[];
+  number: number;
+  pick: () => void;
+}
+function MorphemesTable({ morphemes, number, pick }: MorphemesTableProps) {
+  const cols = "Literal,Pron.,Lemma Read.,Lemma,PoS,Infl. Type,Infl.".split(",");
+  return (
+    <table>
+      <caption>
+        MeCab parsing {number} <button onClick={pick}>Pick</button>
+      </caption>
+      <thead>
+        <tr>
+          {cols.map((col) => (
+            <td key={col}>{col}</td>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {morphemes.map((m, midx) => {
+          return (
+            <tr key={midx.toString() + m.literal}>
+              <td>{m.literal}</td>
+              <td>{m.pronunciation}</td>
+              <td>{m.lemmaReading}</td>
+              <td>{m.lemma}</td>
+              <td>{m.partOfSpeech.join("/")}</td>
+              <td>{m.inflectionType?.join("/")}</td>
+              <td>{m.inflection?.join("/")}</td>
+            </tr>
+          );
         })}
       </tbody>
     </table>
