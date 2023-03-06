@@ -725,8 +725,9 @@ interface RenderSentenceProps {
   line: string;
   sentencesDb: SentenceDb;
   tags: Record<string, string>;
+  translations?: string[];
 }
-export const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps) => {
+export const RenderSentence = ({ line, sentencesDb, tags, translations = [] }: RenderSentenceProps) => {
   const { furigana = [], dictHits = [], conjHits = [], particles = [], kanjidic = {} } = sentencesDb[line]?.data || {};
   const className = furigana.length === 0 ? "no-furigana" : "annotated-sentence";
 
@@ -736,6 +737,26 @@ export const RenderSentence = ({ line, sentencesDb, tags }: RenderSentenceProps)
   // maps morpheme to a list of `${c}${n}` where `c` is `p` for particle,
   // `d` for dict, and `c` for conjugation, and n is a number.
   const mIdxToAnnotationIds: Map<number, string[]> = new Map();
+
+  for (const [it, t] of translations.entries()) {
+    const li = <li>{t}</li>;
+    for (let mIdx = 0; mIdx < furigana.length; mIdx++) {
+      {
+        const hit = covered.get(mIdx);
+        if (!hit) {
+          covered.set(mIdx, [li]);
+        } else {
+          hit.push(li);
+        }
+      }
+      {
+        const hit = mIdxToAnnotationIds.get(mIdx);
+        if (!hit) {
+          mIdxToAnnotationIds.set(mIdx, ["t" + it]);
+        }
+      }
+    }
+  }
 
   // Spell it out like this for speed (avoid conctenating arrays for no reason other than brevity)
   for (const [hidx, h] of dictHits.entries()) {

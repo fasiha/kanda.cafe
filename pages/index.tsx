@@ -24,6 +24,8 @@ export const getStaticProps = async () => {
   return { props: { sentences: obj, particlesMarkdown, tags } };
 };
 
+type SentenceHelper = (s: string, params?: { old?: string; ts?: string[] }) => JSX.Element;
+
 export default function HomePage({
   sentences: sentencesDb,
   particlesMarkdown,
@@ -42,10 +44,10 @@ export default function HomePage({
     [sentencesDb]
   );
 
-  const s = (s: string, old?: string) =>
+  const s: SentenceHelper = (s: string, { old, ts = [] } = {}) =>
     !annotating.has(s) ? (
       <>
-        <RenderSentence key={s} line={s} sentencesDb={sentencesDb} tags={tags} />
+        <RenderSentence key={s} line={s} translations={ts} sentencesDb={sentencesDb} tags={tags} />
         <button className={styles["edit-done-edit"]} onClick={() => setAnnotating(new Set(annotating).add(s))}>
           📝
         </button>
