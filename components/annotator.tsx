@@ -860,7 +860,10 @@ export const RenderSentence = ({ line, sentencesDb, tags, translations = [] }: R
         {furigana.length
           ? furigana.map((fs, idx) => (
               <span
-                className={[styles["morpheme"], covered.has(idx) ? styles["has-annotations"] : ""].join(" ")}
+                className={[
+                  styles["morpheme"],
+                  covered.has(idx) || kanjiPerIdx.get(idx)?.length ? styles["has-annotations"] : "",
+                ].join(" ")}
                 onMouseEnter={() => {
                   setActiveAnnotationIds(mIdxToAnnotationIds.get(idx) || []);
                 }}
@@ -879,14 +882,10 @@ export const RenderSentence = ({ line, sentencesDb, tags, translations = [] }: R
                     )
                   )}
                 </span>
-                {covered.has(idx) ? (
-                  <span className={styles["morpheme-annotations"]}>
-                    <ul>{covered.get(idx)}</ul>
-                    <Kanjidic hits={kanjidic} wantedKanji={kanjiPerIdx.get(idx)} />
-                  </span>
-                ) : (
-                  ""
-                )}
+                <span className={styles["morpheme-annotations"]}>
+                  <ul>{covered.get(idx)}</ul>
+                  <Kanjidic hits={kanjidic} wantedKanji={kanjiPerIdx.get(idx)} />
+                </span>
               </span>
             ))
           : line}
