@@ -530,6 +530,13 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
               <li key={i}>
                 <Furigana vv={furigana.slice(conj.startIdx, conj.endIdx)} /> = <Furigana vv={[conj.lemmas[0]]} />{" "}
                 {renderDeconjugation(conj.selectedDeconj)}
+                <button
+                  onClick={() => {
+                    setConjHits((old) => old.filter((x) => x !== conj));
+                  }}
+                >
+                  Remove
+                </button>
               </li>
             ))}
           </ol>
