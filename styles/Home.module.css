@@ -128,3 +128,8 @@ table.jdepp tr td:last-child {
 table.jdepp ul {
   margin: 0;
 }
+
+button.pick-vocab-button {
+  background-color: lightgray;
+  border-radius: 5px; /* adjust value to change the roundness of the corners */
+}
