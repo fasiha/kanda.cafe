@@ -678,7 +678,8 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
                                         {renderSenses(hit.word, tags).map((s, senseIdx) => (
                                           <li key={senseIdx}>
                                             <>
-                                              <button className={styles["pick-vocab-button"]}
+                                              <button
+                                                className={styles["pick-vocab-button"]}
                                                 onClick={() => {
                                                   setDictHits(
                                                     upsertIfNew(
