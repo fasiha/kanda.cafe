@@ -402,9 +402,8 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
       const alreadyPicked = !!dictHits.find((h) => hitkey(h) === thisKey);
       return (
         <li key={i} className={thisFocused ? styles["focused-morpheme"] : undefined}>
-          {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-          {renderSenses(h.word, tags)[h.sense]}{" "}
           <button
+            className={styles["pick-vocab-button"]}
             onClick={() => {
               if (alreadyPicked) {
                 const removeKey = hitkey(h);
@@ -415,7 +414,9 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
             }}
           >
             {alreadyPicked ? "Remove" : "Add"}
-          </button>
+          </button>{" "}
+          {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
+          {renderSenses(h.word, tags)[h.sense]}{" "}
         </li>
       );
     });
@@ -1345,7 +1346,11 @@ export function Jdepp({ furigana, bunsetsus: bunsetsu, morphemeToJsx }: JdeppPro
               </td>
             );
           });
-          tds.push(<td key="last">{bidxToJsxs.has(bidx) && <ul>{bidxToJsxs.get(bidx) || []}</ul>}</td>);
+          tds.push(
+            <td className={styles["hits"]} key="last">
+              {bidxToJsxs.has(bidx) && <ul>{bidxToJsxs.get(bidx) || []}</ul>}
+            </td>
+          );
 
           for (let l = 0; l < maxLevels; l++) {
             if (l <= maxLevels - level) {

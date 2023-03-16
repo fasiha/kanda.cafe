@@ -19,7 +19,11 @@ app.get('/', (req, res) => {
 
 app.get('/sentence/:sentence', async (req, res) => {
   const nBest = Number(req.query.nBest || 1);
-  const body = {sentence: req.params.sentence, nBest};
+  const body = {
+    sentence: req.params.sentence,
+    nBest,
+    overrides: {'陽': [{ruby: '陽', rt: 'はる'}]}
+  };
   try {
     const reply = await fetch(
         CURTIZ_URL + '/api/v1/sentence?includeWord=1&includeClozes=1', {

@@ -79,6 +79,10 @@ table.jdepp {
   --b: 1px; /* the thickness */
   border-spacing: 0;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+.jdepp .hits{
+  width: 80%;
 }
 .jdepp td.box-drawing {
   width: 2em;
