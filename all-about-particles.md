@@ -35,7 +35,7 @@
 		5. Used at the end of the sentence
 			1. Implies an unstated meaning that is in contrast to one of the stated: “well, yes, but”
 			2. Softens of refusal: “I am sorry but…”
-		6. When you said the end of a sentence are closed and proceeded by to ii, indicates that the speaker wants the events to come out as stated. Context determines whether or not the wishes actually realizable: “it would be nice if; it would have been nice if”
+		6. When used at the end of a sentence or clause and proceeded by “to ii”, indicates that the speaker wants the events to come out as stated. Context determines whether or not the wishes actually realizable: “it would be nice if; it would have been nice if”
 		7. Used idiomatically after contrasted verbs or adjectives “whether or not”
 			1. After the -おう forms of contrast verbs or adjectives
 			2. After after the -おう and -まい forms of the same verb
