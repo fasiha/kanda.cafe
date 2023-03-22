@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import styles from "../styles/Home.module.css";
 
 import {
@@ -38,6 +38,7 @@ interface Hit {
   endIdx: number;
   word: Word;
   sense: number;
+  subSense?: number;
 }
 
 type PartPartial<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>;
@@ -118,7 +119,19 @@ function renderWord(w: Word) {
 function printXrefs(v: Xref[]) {
   return v.map((x) => x.join(",")).join(";");
 }
-function renderSenses(w: Word, tags: Record<string, string>): string[] {
+function renderSenses(
+  w: Word,
+  tags: Record<string, string>,
+  {
+    sense: pickedSenseIdx = undefined,
+    subSense: pickedSubSenseIdx = undefined,
+    subSensePicker = undefined,
+  }: Partial<{
+    sense: number;
+    subSense: number;
+    subSensePicker: (sense: number, subSense: number) => void;
+  }> = {}
+): (JSX.Element | string)[] {
   type Tag = string;
   type TagKey = {
     [K in keyof Sense]: Sense[K] extends Tag[] ? K : never;
@@ -127,21 +140,34 @@ function renderSenses(w: Word, tags: Record<string, string>): string[] {
     dialect: "🗣",
     field: "🀄️",
     misc: "✋",
-    // info: "💁",
   };
-  return w.sense.map(
-    (sense) =>
-      sense.gloss.map((gloss) => gloss.text).join("/") +
-      ` (${sense.partOfSpeech.map((p) => tags[p]).join(", ")})` +
-      (sense.related.length ? ` (👉 ${printXrefs(sense.related)})` : "") +
-      (sense.antonym.length ? ` (👈 ${printXrefs(sense.antonym)})` : "") +
-      Object.entries(tagFields)
-        .map(([k, v]) =>
-          sense[k as TagKey].length ? ` (${v} ${sense[k as TagKey].map((k) => tags[k]).join("; ")})` : ""
-        )
-        .join("") +
-      (sense.info.length ? ` (💁 ${sense.info.join(" | ")})` : "")
+  const mapper = (sense: Sense, sidx: number) => (
+    <>
+      {sense.gloss.map((gloss, ssidx) => {
+        const content = (
+          <>
+            {subSensePicker && <button onClick={() => subSensePicker(sidx, ssidx)}>{ssidx + 1}</button>}{" "}
+            {circleNumber(ssidx)} {gloss.text}{" "}
+          </>
+        );
+        return sidx === pickedSenseIdx && ssidx === pickedSubSenseIdx ? (
+          <strong key={ssidx}>{content}</strong>
+        ) : (
+          <Fragment key={ssidx}>{content}</Fragment>
+        );
+      })}
+      {` (${sense.partOfSpeech.map((p) => tags[p]).join(", ")})` +
+        (sense.related.length ? ` (👉 ${printXrefs(sense.related)})` : "") +
+        (sense.antonym.length ? ` (👈 ${printXrefs(sense.antonym)})` : "") +
+        Object.entries(tagFields)
+          .map(([k, v]) =>
+            sense[k as TagKey].length ? ` (${v} ${sense[k as TagKey].map((k) => tags[k]).join("; ")})` : ""
+          )
+          .join("") +
+        (sense.info.length ? ` (💁 ${sense.info.join(" | ")})` : "")}
+    </>
   );
+  return (pickedSenseIdx === undefined ? w.sense : [w.sense[pickedSenseIdx]]).map(mapper);
 }
 function range(start: number, endExclusive: number, step = 1) {
   const ret: number[] = [];
@@ -361,7 +387,7 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
   const idxsCoveredConjForDict = new Set(conjHits.flatMap((o) => range(o.startIdx + 1, o.endIdx)));
   const wordIdsPicked = new Set(dictHits.map((o) => o.word.id));
 
-  const hitkey = (x: Hit) => `${x.startIdx}/${x.endIdx}/${x.word.id}/${x.sense}`;
+  const hitkey = (x: Hit) => `${x.startIdx}/${x.endIdx}/${x.word.id}/${x.sense}/${x.subSense}`;
   const { tags, clozes } = nlp;
   const conjGroupedByStart = Array.from(groupBy(clozes.conjugatedPhrases, (o) => o.startIdx));
 
@@ -415,8 +441,14 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
           >
             {alreadyPicked ? "Remove" : "Add"}
           </button>{" "}
-          {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)}{" "}
-          {renderSenses(h.word, tags)[h.sense]}{" "}
+          {h.startIdx}-{h.endIdx}: {renderKanji(h.word)} 「{renderKana(h.word)}」{" "}
+          {renderSenses(h.word, tags, {
+            subSensePicker: alreadyPicked
+              ? undefined
+              : (_sense, subSense) => setDictHits(upsertIfNew(dictHits, { ...h, subSense }, hitkey)),
+            sense: h.sense,
+            subSense: h.subSense,
+          })}{" "}
         </li>
       );
     });
@@ -676,12 +708,27 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
                                     <li key={i}>
                                       <sup>{hit.search}</sup> {renderWord(hit.word)}
                                       <ol>
-                                        {renderSenses(hit.word, tags).map((s, senseIdx) => (
+                                        {renderSenses(hit.word, tags, {
+                                          subSensePicker: (sense, subSense) =>
+                                            setDictHits(
+                                              upsertIfNew(
+                                                dictHits,
+                                                {
+                                                  startIdx: scoreHits.startIdx,
+                                                  endIdx: res.endIdx,
+                                                  word: word,
+                                                  sense,
+                                                  subSense,
+                                                },
+                                                hitkey
+                                              )
+                                            ),
+                                        }).map((s, senseIdx) => (
                                           <li key={senseIdx}>
                                             <>
                                               <button
                                                 className={styles["pick-vocab-button"]}
-                                                onClick={() => {
+                                                onClick={() =>
                                                   setDictHits(
                                                     upsertIfNew(
                                                       dictHits,
@@ -693,8 +740,8 @@ export const Annotate = ({ line, sentencesDb, allDictHits, oldLine }: AnnotatePr
                                                       },
                                                       hitkey
                                                     )
-                                                  );
-                                                }}
+                                                  )
+                                                }
                                               >
                                                 Pick
                                               </button>{" "}
@@ -781,8 +828,8 @@ export const RenderSentence = ({ line, sentencesDb, tags, translations = [] }: R
           key={v.length}
           className={[styles["annotate-bullet"], v.length < 3 ? styles[`sib${v.length + 1}`] : ""].join(" ")}
         >
-          {renderKanji(h.word)} 「{renderKana(h.word)}」 {circleNumber(h.sense)} {renderSenses(h.word, tags)[h.sense]}{" "}
-          <sub>{h.word.id}</sub>
+          {renderKanji(h.word)} 「{renderKana(h.word)}」{" "}
+          {renderSenses(h.word, tags, { sense: h.sense, subSense: h.subSense })} <sub>{h.word.id}</sub>
         </li>
       );
     }
