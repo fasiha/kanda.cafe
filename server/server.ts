@@ -22,7 +22,8 @@ app.get('/sentence/:sentence', async (req, res) => {
   const body = {
     sentence: req.params.sentence,
     nBest,
-    overrides: {'陽': [{ruby: '陽', rt: 'はる'}]}
+    overrides:
+        {'陽': [{ruby: '陽', rt: 'はる'}], '弦': [{ruby: '弦', rt: 'ゆずる'}]}
   };
   try {
     const reply = await fetch(
