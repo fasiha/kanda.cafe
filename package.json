@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "curtiz-utils": "github:fasiha/curtiz-utils",
-    "kamiya-codec": "^4.6.2",
+    "kamiya-codec": "^4.8.0",
     "next": "12.1.6",
     "react": "18.2.0",
     "react-dom": "18.2.0"
