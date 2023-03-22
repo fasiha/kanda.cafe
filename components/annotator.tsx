@@ -119,6 +119,15 @@ function renderWord(w: Word) {
 function printXrefs(v: Xref[]) {
   return v.map((x) => x.join(",")).join(";");
 }
+type Tag = string;
+type TagKey = {
+  [K in keyof Sense]: Sense[K] extends Tag[] ? K : never;
+}[keyof Sense];
+const tagFields: Partial<Record<TagKey, string>> = {
+  dialect: "🗣",
+  field: "🀄️",
+  misc: "✋",
+};
 function renderSenses(
   w: Word,
   tags: Record<string, string>,
@@ -131,43 +140,40 @@ function renderSenses(
     subSense: number;
     subSensePicker: (sense: number, subSense: number) => void;
   }> = {}
-): (JSX.Element | string)[] {
-  type Tag = string;
-  type TagKey = {
-    [K in keyof Sense]: Sense[K] extends Tag[] ? K : never;
-  }[keyof Sense];
-  const tagFields: Partial<Record<TagKey, string>> = {
-    dialect: "🗣",
-    field: "🀄️",
-    misc: "✋",
-  };
-  const mapper = (sense: Sense, sidx: number) => (
-    <>
-      {sense.gloss.map((gloss, ssidx) => {
-        const content = (
-          <>
-            {subSensePicker && <button onClick={() => subSensePicker(sidx, ssidx)}>{ssidx + 1}</button>}{" "}
-            {circleNumber(ssidx)} {gloss.text}{" "}
-          </>
-        );
-        return sidx === pickedSenseIdx && ssidx === pickedSubSenseIdx ? (
-          <strong key={ssidx}>{content}</strong>
-        ) : (
-          <Fragment key={ssidx}>{content}</Fragment>
-        );
-      })}
-      {` (${sense.partOfSpeech.map((p) => tags[p]).join(", ")})` +
-        (sense.related.length ? ` (👉 ${printXrefs(sense.related)})` : "") +
-        (sense.antonym.length ? ` (👈 ${printXrefs(sense.antonym)})` : "") +
-        Object.entries(tagFields)
-          .map(([k, v]) =>
-            sense[k as TagKey].length ? ` (${v} ${sense[k as TagKey].map((k) => tags[k]).join("; ")})` : ""
-          )
-          .join("") +
-        (sense.info.length ? ` (💁 ${sense.info.join(" | ")})` : "")}
-    </>
-  );
-  return (pickedSenseIdx === undefined ? w.sense : [w.sense[pickedSenseIdx]]).map(mapper);
+): JSX.Element[] {
+  return w.sense
+    .map((sense: Sense, sidx: number) => {
+      if (pickedSenseIdx !== undefined && pickedSenseIdx !== sidx) {
+        return undefined;
+      }
+      return (
+        <>
+          {sense.gloss.map((gloss, ssidx) => {
+            const content = (
+              <>
+                {subSensePicker && <button onClick={() => subSensePicker(sidx, ssidx)}>{ssidx + 1}</button>}{" "}
+                {circleNumber(ssidx)} {gloss.text}{" "}
+              </>
+            );
+            return sidx === pickedSenseIdx && ssidx === pickedSubSenseIdx ? (
+              <strong key={ssidx}>{content}</strong>
+            ) : (
+              <Fragment key={ssidx}>{content}</Fragment>
+            );
+          })}
+          {` (${sense.partOfSpeech.map((p) => tags[p]).join(", ")})` +
+            (sense.related.length ? ` (👉 ${printXrefs(sense.related)})` : "") +
+            (sense.antonym.length ? ` (👈 ${printXrefs(sense.antonym)})` : "") +
+            Object.entries(tagFields)
+              .map(([k, v]) =>
+                sense[k as TagKey].length ? ` (${v} ${sense[k as TagKey].map((k) => tags[k]).join("; ")})` : ""
+              )
+              .join("") +
+            (sense.info.length ? ` (💁 ${sense.info.join(" | ")})` : "")}
+        </>
+      );
+    })
+    .filter((x): x is JSX.Element => !!x);
 }
 function range(start: number, endExclusive: number, step = 1) {
   const ret: number[] = [];
